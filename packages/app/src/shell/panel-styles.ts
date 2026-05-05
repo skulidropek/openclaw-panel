@@ -1,5 +1,6 @@
 import { panelListStyles } from "./panel-list-styles.js"
 import { panelModalStyles } from "./panel-modal-styles.js"
+import { panelResponsiveStyles } from "./panel-responsive-styles.js"
 
 export const panelStyles = String.raw`
   :root {
@@ -9,7 +10,10 @@ export const panelStyles = String.raw`
     color: #10233d;
   }
   * { box-sizing: border-box; }
-  html, body { min-height: 100%; }
+  html, body {
+    min-height: 100%;
+    overflow-x: hidden;
+  }
   body {
     margin: 0;
     background:
@@ -20,17 +24,18 @@ export const panelStyles = String.raw`
   h1, h2, p { margin: 0; }
   button, input, select, textarea { font: inherit; }
   .shell {
-    width: min(1240px, calc(100vw - 32px));
+    width: calc(100vw - clamp(16px, 2.5vw, 40px));
     min-height: 100vh;
     margin: 0 auto;
-    padding: 24px 0;
+    padding: clamp(10px, 1.8vh, 20px) 0;
   }
   .topbar {
     display: grid;
-    grid-template-columns: 1fr auto 1fr;
-    gap: 16px;
+    grid-template-columns: minmax(150px, 1fr) auto minmax(220px, 1fr);
+    gap: 12px;
     align-items: center;
-    margin-bottom: 22px;
+    margin-bottom: clamp(10px, 1.8vh, 18px);
+    min-width: 0;
   }
   .brand {
     display: inline-grid;
@@ -71,6 +76,9 @@ export const panelStyles = String.raw`
   }
   .page { display: none; }
   .page.active { display: block; }
+  .page, .topbar > *, .hero-card, .terminal-card, .bots-page, .bots-sidebar, .bot-detail {
+    min-width: 0;
+  }
   .hero-card, .terminal-card, .bots-sidebar, .bot-detail {
     border: 1px solid #dce6f1;
     border-radius: 28px;
@@ -78,12 +86,12 @@ export const panelStyles = String.raw`
     box-shadow: 0 24px 70px rgba(52, 72, 96, 0.12);
   }
   .hero-card {
-    min-height: calc(100vh - 150px);
+    min-height: calc(100dvh - 124px);
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(360px, 470px);
-    gap: 42px;
+    gap: clamp(20px, 3vw, 42px);
     align-items: center;
-    padding: clamp(24px, 5vw, 70px);
+    padding: clamp(22px, 4vw, 58px);
   }
   .copy h1 {
     max-width: 680px;
@@ -171,7 +179,7 @@ export const panelStyles = String.raw`
   .form-note { color: #5d7598; font-size: 14px; }
   .hidden { display: none !important; }
   .terminal-card {
-    height: calc(100vh - 150px);
+    height: calc(100dvh - 124px);
     display: grid;
     grid-template-rows: auto minmax(0, 1fr);
     overflow: hidden;
@@ -179,25 +187,41 @@ export const panelStyles = String.raw`
   .terminal-top {
     display: flex;
     justify-content: space-between;
-    gap: 18px;
+    gap: 12px;
     align-items: center;
-    padding: 18px 20px;
+    padding: 12px 14px;
+    min-width: 0;
   }
-  .terminal-top h2 { font-size: 24px; letter-spacing: -0.03em; }
-  .terminal-actions { display: flex; gap: 8px; align-items: center; }
+  .terminal-top h2 {
+    overflow: hidden;
+    font-size: clamp(19px, 2vw, 24px);
+    letter-spacing: -0.03em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .terminal-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; align-items: center; }
   .terminal-actions a { background: #eef5ff; color: #126ee2; }
   .terminal {
     min-height: 0;
-    margin: 0 12px 12px;
+    min-width: 0;
+    margin: 0 8px 8px;
     overflow: hidden;
-    border-radius: 20px;
+    border-radius: 18px;
     background: #07111f;
   }
   .terminal:focus-within, .terminal:focus {
     outline: 3px solid rgba(18, 110, 226, 0.26);
     outline-offset: -3px;
   }
-  .terminal .xterm { width: 100%; height: 100%; padding: 8px; }
+  .terminal .xterm {
+    width: 100%;
+    max-width: 100%;
+    height: 100%;
+    padding: 6px;
+  }
+  .terminal .xterm-screen {
+    max-width: 100%;
+  }
   .terminal .xterm-viewport {
     overflow-x: hidden !important;
     overflow-y: auto !important;
@@ -205,10 +229,10 @@ export const panelStyles = String.raw`
     scrollbar-width: thin;
   }
   .bots-page {
-    min-height: calc(100vh - 150px);
+    min-height: calc(100dvh - 124px);
     display: none;
-    grid-template-columns: 360px minmax(0, 1fr);
-    gap: 18px;
+    grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+    gap: 14px;
   }
   .bots-page.active { display: grid; }
   .bots-sidebar, .bot-detail { padding: 18px; }
@@ -266,14 +290,6 @@ export const panelStyles = String.raw`
     color: #5d7598;
     text-align: center;
   }
-  @media (max-width: 880px) {
-    .shell { width: min(100vw - 18px, 760px); padding: 10px 0; }
-    .topbar, .hero-card, .bots-page.active { grid-template-columns: 1fr; }
-    .status-strip { justify-content: flex-start; }
-    .hero-card, .terminal-card, .bots-page { min-height: auto; }
-    .terminal-card { height: 70vh; }
-    .detail-grid, .field-grid, .create-actions { grid-template-columns: 1fr; }
-    .bot-list { max-height: none; }
-  }
 ${panelListStyles}
-${panelModalStyles}`
+${panelModalStyles}
+${panelResponsiveStyles}`

@@ -54,11 +54,24 @@ const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (character) => (
 })[character]);
 const botUrl = (bot) => bot.adminUrl || ("/bot-admin/" + encodeURIComponent(bot.id) + "/");
 const socketReady = () => socket && socket.readyState === WebSocket.OPEN;
+let pendingTerminalFit = 0;
+const fitTerminal = () => {
+  if (pendingTerminalFit) window.cancelAnimationFrame(pendingTerminalFit);
+  pendingTerminalFit = window.requestAnimationFrame(() => {
+    pendingTerminalFit = 0;
+    if (!terminalEl.offsetParent) return;
+    fitAddon.fit();
+    sendTerminalMessage({ type: "resize", cols: terminal.cols, rows: terminal.rows });
+  });
+};
 const sendTerminalMessage = (message) => {
   if (socketReady()) socket.send(JSON.stringify(message));
 };
 terminal.onData((data) => sendTerminalMessage({ type: "input", data }));
 terminal.onResize((size) => sendTerminalMessage({ type: "resize", cols: size.cols, rows: size.rows }));
+if ("ResizeObserver" in window) {
+  new ResizeObserver(() => fitTerminal()).observe(terminalEl);
+}
 
 const formParams = () => new URLSearchParams(new FormData(createForm));
 
@@ -116,7 +129,7 @@ const renderRoute = () => {
   for (const link of routeLinks) link.classList.toggle("active", link.getAttribute("href") === location.pathname);
   if (current === "bots") loadBots();
   if (current === "create" && !socketReady() && terminalStatus.textContent === "Closed") resetCreateForm();
-  if (current === "create") window.requestAnimationFrame(() => fitAddon.fit());
+  if (current === "create") fitTerminal();
 };
 for (const link of routeLinks) {
   link.addEventListener("click", (event) => {
@@ -125,7 +138,7 @@ for (const link of routeLinks) {
   });
 }
 window.addEventListener("popstate", renderRoute);
-window.addEventListener("resize", () => fitAddon.fit());
+window.addEventListener("resize", fitTerminal);
 
 const loadDiagnostics = async () => {
   const result = await api("/api/diagnostics");
@@ -202,7 +215,7 @@ const showTerminal = (bot) => {
   terminalCard.classList.remove("hidden");
   terminalTitle.textContent = bot ? "Onboarding · " + bot.name : "Interactive terminal";
   window.requestAnimationFrame(() => {
-    fitAddon.fit();
+    fitTerminal();
     terminal.focus();
   });
 };
@@ -222,7 +235,7 @@ const connectOnboarding = (sessionId, bot) => {
   };
   socket.onopen = () => {
     terminalStatus.textContent = "Interactive";
-    fitAddon.fit();
+    fitTerminal();
     terminal.focus();
     sendTerminalMessage({ type: "resize", cols: terminal.cols, rows: terminal.rows });
   };
