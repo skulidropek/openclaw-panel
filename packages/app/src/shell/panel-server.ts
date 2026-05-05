@@ -45,6 +45,20 @@ const acceptUpgrade = (socket: Duplex, key: string): void => {
   )
 }
 
+const socketWritable = (socket: Duplex): boolean => !socket.destroyed && !socket.writableEnded
+
+const writeSocket = (socket: Duplex, frame: Buffer | string): void => {
+  if (socketWritable(socket)) {
+    socket.write(frame)
+  }
+}
+
+const endSocket = (socket: Duplex): void => {
+  if (socketWritable(socket)) {
+    socket.end()
+  }
+}
+
 type OnboardingClientMessage =
   | {
     readonly data: Buffer
@@ -110,39 +124,40 @@ const applyOnboardingMessage = (process: InteractiveDockerProcess, message: Onbo
 }
 
 const finalizeAndCloseSocket = (containerId: string, socket: Duplex): void => {
-  socket.write(encodeTextFrame("\n[finalizing OpenClaw daemon]\n"))
+  writeSocket(socket, encodeTextFrame("\n[finalizing OpenClaw daemon]\n"))
   pipe(
     finalizeOnboardingProcess(containerId),
     Effect.matchEffect({
       onFailure: (error) =>
         Effect.sync(() => {
-          socket.write(encodeTextFrame(`\n[daemon finalize error] ${String(error)}\n`))
-          socket.end()
+          writeSocket(socket, encodeTextFrame(`\n[daemon finalize error] ${String(error)}\n`))
+          endSocket(socket)
         }),
       onSuccess: () =>
         Effect.sync(() => {
-          socket.write(encodeTextFrame("\n[OpenClaw daemon ready]\n"))
-          socket.end()
+          writeSocket(socket, encodeTextFrame("\n[OpenClaw daemon ready]\n"))
+          endSocket(socket)
         })
     }),
     Effect.runFork
   )
 }
 
-const attachExecToSocket = (runtime: PanelRuntime, sessionId: string, socket: Duplex) =>
-  pipe(
+const attachExecToSocket = (runtime: PanelRuntime, sessionId: string, socket: Duplex) => {
+  let clientClosed = false
+  return pipe(
     findOnboardingContainerId(runtime, sessionId),
     Effect.flatMap((containerId) =>
       startOnboardingProcess(containerId, {
         onData: (chunk) => {
-          socket.write(encodeBufferFrame(chunk))
+          writeSocket(socket, encodeBufferFrame(chunk))
         },
         onEnd: () => {
-          finalizeAndCloseSocket(containerId, socket)
+          if (!clientClosed) finalizeAndCloseSocket(containerId, socket)
         },
         onError: (error) => {
-          socket.write(encodeTextFrame(`\n[Docker error] ${error.message}\n`))
-          socket.end()
+          writeSocket(socket, encodeTextFrame(`\n[Docker error] ${error.message}\n`))
+          endSocket(socket)
         }
       })
     ),
@@ -156,17 +171,19 @@ const attachExecToSocket = (runtime: PanelRuntime, sessionId: string, socket: Du
           if (frame.opcode === "text") {
             applyOnboardingMessage(process, Effect.runSync(decodeOnboardingMessage(frame.payload)))
           } else if (frame.opcode === "ping") {
-            socket.write(encodePongFrame(frame.payload))
+            writeSocket(socket, encodePongFrame(frame.payload))
           } else {
-            socket.end()
+            endSocket(socket)
           }
         }
       })
       socket.on("close", () => {
+        clientClosed = true
         process.kill()
       })
     })
   )
+}
 
 const proxyBotAdminSocket = (
   botAdminPath: NonNullable<ReturnType<typeof parseBotAdminPath>>,

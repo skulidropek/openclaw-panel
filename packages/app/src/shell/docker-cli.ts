@@ -58,6 +58,21 @@ export const runWithSpec = (spec: DockerCommandSpec, args: ReadonlyArray<string>
     })
   )
 
+const retryDockerEffect = <A>(
+  effect: Effect.Effect<A, DockerCliError>,
+  attempts: number
+): Effect.Effect<A, DockerCliError> =>
+  pipe(
+    effect,
+    Effect.matchEffect({
+      onFailure: (error) =>
+        attempts <= 1
+          ? Effect.fail(error)
+          : pipe(Effect.sleep("1 second"), Effect.flatMap(() => retryDockerEffect(effect, attempts - 1))),
+      onSuccess: (value) => Effect.succeed(value)
+    })
+  )
+
 const canUseSpec = (spec: DockerCommandSpec) =>
   pipe(
     runProcess(spec.file, [...spec.argsPrefix, "info", "--format", "{{.ServerVersion}}"], process.cwd()),
@@ -142,6 +157,9 @@ export const cliCreateContainer = (config: PanelConfig, bot: BotRecord) =>
   )
 
 export const cliStartContainer = (containerId: string) => runDocker(["start", containerId])
+
+export const cliWaitForContainerReady = (containerId: string) =>
+  retryDockerEffect(runDocker(["exec", "-u", "root", containerId, "sh", "-lc", "true"]), 60).pipe(Effect.asVoid)
 
 export const cliStopContainer = (containerId: string) => runDocker(["stop", containerId])
 

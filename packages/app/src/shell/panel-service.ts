@@ -5,7 +5,13 @@ import { Effect, pipe } from "effect"
 
 import { type BotAction, type BotRecord, newBotRecord, type PanelConfig, withContainerId } from "../core/bot.js"
 import { botAdminUrl, parseBotAdminPath, proxyBotAdminHttp } from "./bot-admin-proxy.js"
-import { cliCreateContainer, cliCreateVolume, cliStartContainer, dockerDiagnostics } from "./docker-cli.js"
+import {
+  cliCreateContainer,
+  cliCreateVolume,
+  cliStartContainer,
+  cliWaitForContainerReady,
+  dockerDiagnostics
+} from "./docker-cli.js"
 import { notFound, parseForm, readBody, requestPathname, sendJson, sendText } from "./http-utils.js"
 import { resolvedActionResult } from "./panel-actions.js"
 import { exportCommandForBot, previewCommandForForm } from "./panel-command.js"
@@ -68,6 +74,7 @@ const createBot = (runtime: PanelRuntime, name: string) =>
         Effect.flatMap(() => cliCreateVolume(bot.volumeName)),
         Effect.flatMap(() => cliCreateContainer(runtime.config, bot)),
         Effect.flatMap((containerId) => cliStartContainer(containerId).pipe(Effect.as(containerId))),
+        Effect.flatMap((containerId) => cliWaitForContainerReady(containerId).pipe(Effect.as(containerId))),
         Effect.flatMap((containerId) => {
           const saved = withContainerId(bot, containerId, new Date().toISOString())
           const session = {

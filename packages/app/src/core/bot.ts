@@ -164,7 +164,7 @@ export const actionToDockerOperation = (action: BotAction): "none" | "remove" | 
   dockerOperations[action]
 
 export const dockerSpecForBot = (config: PanelConfig, bot: BotRecord): DockerContainerSpec => ({
-  Cmd: ["/lib/systemd/systemd"],
+  Cmd: ["openclaw-panel-init"],
   Env: [
     "HOME=/home/node",
     "TERM=xterm-256color",
@@ -177,10 +177,8 @@ export const dockerSpecForBot = (config: PanelConfig, bot: BotRecord): DockerCon
   },
   HostConfig: {
     Binds: [
-      `${bot.volumeName}:/home/node/.openclaw`,
-      "/sys/fs/cgroup:/sys/fs/cgroup:rw"
+      `${bot.volumeName}:/home/node/.openclaw`
     ],
-    CgroupnsMode: "host",
     PortBindings: {
       "18789/tcp": [
         {
@@ -193,7 +191,7 @@ export const dockerSpecForBot = (config: PanelConfig, bot: BotRecord): DockerCon
     RestartPolicy: {
       Name: "unless-stopped"
     },
-    StopSignal: "SIGRTMIN+3",
+    StopSignal: "SIGTERM",
     Tmpfs: {
       "/run": "rw,noexec,nosuid,size=65536k",
       "/run/lock": "rw,noexec,nosuid,size=65536k",

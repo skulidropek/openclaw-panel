@@ -29,7 +29,7 @@ describe("bot core", () => {
       expect(bot.volumeName).toBe("openclaw-panel-abc123-home")
     }))
 
-  it.effect("builds strict daemon compatible Docker spec", () =>
+  it.effect("builds panel runner Docker spec", () =>
     Effect.sync(() => {
       const bot = newBotRecord({
         baseGatewayPort: 18_789,
@@ -39,8 +39,9 @@ describe("bot core", () => {
         occupiedPorts: []
       })
       const spec = dockerSpecForBot(defaultPanelConfig, bot)
-      expect(spec.Cmd).toEqual(["/lib/systemd/systemd"])
+      expect(spec.Cmd).toEqual(["openclaw-panel-init"])
       expect(spec.HostConfig["Privileged"]).toBe(true)
+      expect(spec.HostConfig["StopSignal"]).toBe("SIGTERM")
       expect(spec.HostConfig["PortBindings"]).toEqual({
         "18789/tcp": [{ HostIp: "127.0.0.1", HostPort: "18789" }]
       })

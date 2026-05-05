@@ -11,6 +11,8 @@ export class RunnerImageError extends Data.TaggedError("RunnerImageError")<{
 }> {}
 
 const localDockerfile = "docker/openclaw-bot-runner.Dockerfile"
+const runnerVersion = "2"
+const runnerVersionLabel = "openclaw.panel.runner-version"
 const workspaceDockerfile = "packages/app/docker/openclaw-bot-runner.Dockerfile"
 
 const resolveDockerfile = (): { readonly contextDir: string; readonly dockerfile: string } => {
@@ -23,17 +25,17 @@ const resolveDockerfile = (): { readonly contextDir: string; readonly dockerfile
     }
   }
   return {
-    contextDir: cwd,
+    contextDir: path.dirname(path.join(cwd, workspaceDockerfile)),
     dockerfile: path.join(cwd, workspaceDockerfile)
   }
 }
 
-const imageExists = (image: string) =>
+const imageIsCurrent = (image: string) =>
   pipe(
-    runDocker(["image", "inspect", image]),
+    runDocker(["image", "inspect", "--format", `{{ index .Config.Labels "${runnerVersionLabel}" }}`, image]),
     Effect.matchEffect({
       onFailure: () => Effect.succeed(false),
-      onSuccess: () => Effect.succeed(true)
+      onSuccess: (version) => Effect.succeed(version.trim() === runnerVersion)
     })
   )
 
@@ -48,7 +50,7 @@ const buildImage = (config: PanelConfig) =>
 
 export const ensureRunnerImage = (config: PanelConfig) =>
   pipe(
-    imageExists(config.runnerImage),
-    Effect.flatMap((exists) => exists ? Effect.void : buildImage(config)),
+    imageIsCurrent(config.runnerImage),
+    Effect.flatMap((current) => current ? Effect.void : buildImage(config)),
     Effect.mapError((error) => new RunnerImageError({ message: String(error) }))
   )

@@ -126,12 +126,10 @@ export const dockerCreateArgsForBot = (config: PanelConfig, bot: BotRecord): Rea
   "--label",
   `openclaw.panel.name=${bot.name}`,
   "--privileged",
-  "--cgroupns",
-  "host",
   "--restart",
   "unless-stopped",
   "--stop-signal",
-  "SIGRTMIN+3",
+  "SIGTERM",
   "--tmpfs",
   "/run:rw,noexec,nosuid,size=65536k",
   "--tmpfs",
@@ -150,12 +148,10 @@ export const dockerCreateArgsForBot = (config: PanelConfig, bot: BotRecord): Rea
   `OPENCLAW_PANEL_BOT_ID=${bot.id}`,
   "-v",
   `${bot.volumeName}:/home/node/.openclaw`,
-  "-v",
-  "/sys/fs/cgroup:/sys/fs/cgroup:rw",
   "-p",
   `${config.host}:${bot.hostGatewayPort}:18789`,
   config.runnerImage,
-  "/lib/systemd/systemd"
+  "openclaw-panel-init"
 ]
 
 export const dockerArgsForBot = (spec: BotProvisioningSpec): ReadonlyArray<string> =>
@@ -174,6 +170,11 @@ export const generateOpenClawOnboardCommand = (spec: BotProvisioningSpec): strin
 const dockerLine = (args: ReadonlyArray<string>): string =>
   ["\"${DOCKER[@]}\"", ...args.map((part) => shellQuote(part))].join(" ")
 
+const dockerRetryLine = (args: ReadonlyArray<string>): string => {
+  const command = dockerLine(args)
+  return `for attempt in $(seq 1 60); do ${command} && break; if [ "$attempt" = "60" ]; then exit 1; fi; sleep 1; done`
+}
+
 const dockerExecNodeArgs = (
   containerName: string,
   command: ReadonlyArray<string>
@@ -189,12 +190,8 @@ const dockerExecNodeArgs = (
 const prepareOnboardingScript = [
   "mkdir -p /home/node/.openclaw/agents/main /home/node/.openclaw/workspace /home/node/.config/systemd/user /run/user/1000",
   "chown -R node:node /home/node/.openclaw /home/node/.config /run/user/1000",
-  "chmod 700 /run/user/1000",
-  "systemctl start user@1000.service"
+  "chmod 700 /run/user/1000"
 ].join(" && ")
-
-const waitForSystemdScript =
-  "for attempt in $(seq 1 60); do systemctl list-units --no-pager >/dev/null 2>&1 && exit 0; sleep 1; done; systemctl status --no-pager || true; exit 1"
 
 const postConfigScript = [
   "const fs = require('node:fs');",
@@ -238,15 +235,7 @@ export const generateBotBootstrapCommand = (spec: BotProvisioningSpec): string =
     dockerLine(["volume", "create", spec.bot.volumeName]),
     dockerLine(dockerArgsForBot(spec)),
     dockerLine(["start", spec.bot.containerName]),
-    dockerLine([
-      "exec",
-      "-u",
-      "root",
-      spec.bot.containerName,
-      "sh",
-      "-lc",
-      waitForSystemdScript
-    ]),
+    dockerRetryLine(["exec", "-u", "root", spec.bot.containerName, "sh", "-lc", "true"]),
     dockerLine([
       "exec",
       "-u",
