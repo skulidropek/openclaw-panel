@@ -32,7 +32,7 @@ const terminal = new Terminal({
   cursorStyle: "block",
   fontFamily: "JetBrains Mono, Menlo, Monaco, Consolas, monospace",
   fontSize: 22, fontWeight: 600, fontWeightBold: 800,
-  letterSpacing: 0.1, lineHeight: 1.28, scrollback: 5000,
+  letterSpacing: 0.1, lineHeight: 1.28, scrollback: 5000, scrollOnUserInput: true,
   theme: { background: "#07111f", cursor: "#ffffff", foreground: "#e6f0ff", selectionBackground: "#27466a" }
 });
 const fitAddon = new FitAddon.FitAddon();
@@ -48,6 +48,7 @@ const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (character) => (
 })[character]);
 const botUrl = (bot) => bot.adminUrl || ("/bot-admin/" + encodeURIComponent(bot.id) + "/");
 const socketReady = () => socket && socket.readyState === WebSocket.OPEN;
+const followTerminal = () => window.requestAnimationFrame(() => { const buffer = terminal.buffer.active; terminal.scrollToLine(Math.max(0, buffer.baseY + buffer.cursorY - Math.floor(terminal.rows / 2))); });
 let pendingTerminalFit = 0;
 const fitTerminal = () => {
   if (pendingTerminalFit) window.cancelAnimationFrame(pendingTerminalFit);
@@ -55,6 +56,7 @@ const fitTerminal = () => {
     pendingTerminalFit = 0;
     if (!terminalEl.offsetParent) return;
     fitAddon.fit();
+    followTerminal();
     sendTerminalMessage({ type: "resize", cols: terminal.cols, rows: terminal.rows });
   });
 };
@@ -65,10 +67,11 @@ const safeCopySelection = () => { const text = terminal.getSelection(); if (text
 terminal.attachCustomKeyEventHandler((event) => {
   const blocked = event.type === "keydown" && (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "c";
   if (blocked) { if (terminal.hasSelection()) safeCopySelection(); terminalStatus.textContent = terminal.hasSelection() ? "Copied" : "Ctrl+C blocked"; return false; }
+  if (event.type === "keydown") followTerminal();
   return true;
 });
-terminal.onData((data) => { if (data !== "\x03") sendTerminalMessage({ type: "input", data }); });
-terminal.onResize((size) => sendTerminalMessage({ type: "resize", cols: size.cols, rows: size.rows }));
+terminal.onData((data) => { if (data !== "\x03") { sendTerminalMessage({ type: "input", data }); followTerminal(); } });
+terminal.onResize((size) => { followTerminal(); sendTerminalMessage({ type: "resize", cols: size.cols, rows: size.rows }); });
 if ("ResizeObserver" in window) new ResizeObserver(() => fitTerminal()).observe(terminalEl);
 
 const formParams = () => new URLSearchParams(new FormData(createForm));
@@ -209,10 +212,7 @@ const showTerminal = (bot) => {
   createPage.classList.add("onboarding-active"); createStart.classList.add("hidden"); terminalCard.classList.remove("hidden");
   window.scrollTo(0, 0);
   terminalTitle.textContent = bot ? "Onboarding · " + bot.name : "Interactive terminal";
-  window.requestAnimationFrame(() => {
-    fitTerminal();
-    terminal.focus();
-  });
+  window.requestAnimationFrame(() => { fitTerminal(); terminal.focus(); followTerminal(); });
 };
 
 const connectOnboarding = (sessionId, bot) => {
@@ -222,10 +222,10 @@ const connectOnboarding = (sessionId, bot) => {
   terminal.reset();
   terminalStatus.textContent = "Connecting";
   socket = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/api/onboarding/" + sessionId);
-  socket.onmessage = (event) => terminal.write(event.data);
+  socket.onmessage = (event) => terminal.write(event.data, followTerminal);
   socket.onclose = () => {
     terminalStatus.textContent = "Closed";
-    terminal.write("\r\n[session closed]\r\n");
+    terminal.write("\r\n[session closed]\r\n", followTerminal);
     loadBots();
   };
   socket.onopen = () => {
