@@ -15,6 +15,9 @@ export const panelStyles = String.raw`
     min-height: 100%;
     overflow-x: hidden;
   }
+  body.create-route {
+    overflow: hidden;
+  }
   body {
     margin: 0;
     background:
@@ -29,6 +32,13 @@ export const panelStyles = String.raw`
     min-height: 100vh;
     margin: 0 auto;
     padding: clamp(10px, 1.8vh, 20px) 0;
+  }
+  body.create-route .shell {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
   }
   .topbar {
     display: grid;
@@ -93,6 +103,35 @@ export const panelStyles = String.raw`
     gap: clamp(20px, 3vw, 42px);
     align-items: center;
     padding: clamp(22px, 4vw, 58px);
+  }
+  body.create-route .create-page.active {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+  body.create-route .hero-card {
+    height: 100%;
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 460px);
+    gap: clamp(18px, 3vw, 38px);
+    padding: clamp(18px, 3vw, 42px);
+  }
+  body.create-route .create-form {
+    width: 100%;
+    justify-self: end;
+  }
+  body.create-route .copy h1 {
+    max-width: 740px;
+    font-size: clamp(40px, 4.7vw, 68px);
+  }
+  body.create-route .copy p:last-child {
+    max-width: 610px;
+    margin-top: 14px;
+    font-size: clamp(15px, 1.4vw, 18px);
+    line-height: 1.45;
+  }
+  body.create-route textarea {
+    min-height: 92px;
   }
   .copy h1 {
     max-width: 680px;

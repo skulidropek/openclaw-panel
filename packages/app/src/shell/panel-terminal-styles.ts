@@ -8,6 +8,10 @@ export const panelTerminalStyles = String.raw`
       linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 249, 255, 0.84)),
       radial-gradient(circle at 0% 0%, rgba(18, 110, 226, 0.08), transparent 34%);
   }
+  body.create-route .terminal-card {
+    height: 100%;
+    min-height: 0;
+  }
   .terminal-top {
     display: flex;
     justify-content: space-between;

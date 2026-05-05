@@ -1,6 +1,6 @@
 export const panelResponsiveStyles = String.raw`
   @media (max-width: 1900px) {
-    .hero-card {
+    body:not(.create-route) .hero-card {
       grid-template-columns: minmax(0, 1fr);
       align-content: center;
       align-items: start;
@@ -10,7 +10,7 @@ export const panelResponsiveStyles = String.raw`
       font-size: clamp(42px, 6vw, 76px);
     }
     .copy p:last-child { max-width: 560px; }
-    .create-form {
+    body:not(.create-route) .create-form {
       width: min(560px, 100%);
       justify-self: start;
     }
@@ -31,6 +31,14 @@ export const panelResponsiveStyles = String.raw`
     .terminal-card { height: calc(100dvh - 104px); }
     .detail-grid, .field-grid, .create-actions { grid-template-columns: 1fr; }
     .bot-list { max-height: none; }
+    body.create-route .hero-card {
+      grid-template-columns: 1fr;
+      align-content: center;
+    }
+    body.create-route .create-form {
+      width: min(520px, 100%);
+      justify-self: start;
+    }
   }
   @media (max-width: 560px) {
     .brand strong { font-size: 22px; }
@@ -47,5 +55,8 @@ export const panelResponsiveStyles = String.raw`
     .terminal-card { height: calc(100dvh - 92px); }
     .terminal-top { align-items: flex-start; }
     .terminal-actions a { display: none; }
+    body.create-route .copy h1 { font-size: clamp(34px, 12vw, 48px); }
+    body.create-route .copy p:last-child { font-size: 14px; }
+    body.create-route textarea { min-height: 78px; }
   }
 `

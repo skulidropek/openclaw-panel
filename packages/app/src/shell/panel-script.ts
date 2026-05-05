@@ -113,12 +113,12 @@ const setRoute = (path) => {
   renderRoute();
 };
 const resetCreateForm = () => {
-  createStart.classList.remove("hidden");
-  terminalCard.classList.add("hidden");
+  createPage.classList.remove("onboarding-active"); createStart.classList.remove("hidden"); terminalCard.classList.add("hidden");
   deploymentStatus.textContent = "Ready to create.";
 };
 const renderRoute = () => {
   const current = pageName();
+  document.body.classList.toggle("create-route", current === "create");
   createPage.classList.toggle("active", current === "create");
   botsPage.classList.toggle("active", current === "bots");
   for (const link of routeLinks) link.classList.toggle("active", link.getAttribute("href") === location.pathname);
@@ -206,8 +206,8 @@ botsEl.addEventListener("click", (event) => {
 });
 
 const showTerminal = (bot) => {
-  createStart.classList.add("hidden");
-  terminalCard.classList.remove("hidden");
+  createPage.classList.add("onboarding-active"); createStart.classList.add("hidden"); terminalCard.classList.remove("hidden");
+  window.scrollTo(0, 0);
   terminalTitle.textContent = bot ? "Onboarding · " + bot.name : "Interactive terminal";
   window.requestAnimationFrame(() => {
     fitTerminal();
