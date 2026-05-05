@@ -38,47 +38,21 @@ const createPage = String.raw`
       <div class="copy">
         <p class="eyebrow">New instance</p>
         <h1>Create OpenClaw bot</h1>
-        <p>Give it a name. The panel creates an isolated Docker container and opens the native onboarding terminal.</p>
+        <p>Give it a name and intent. The panel creates an isolated Docker container, then OpenClaw handles model setup in its native onboarding terminal.</p>
       </div>
       <form id="create-form" class="create-form">
         <label for="bot-name">Bot name</label>
         <div class="create-row">
           <input id="bot-name" name="name" placeholder="sales-helper" autocomplete="off" required />
         </div>
-        <details class="advanced-fields">
-          <summary>Advanced CLI settings</summary>
-          <div class="field-grid">
-            <label>LLM base URL
-              <input name="connectorBaseUrl" placeholder="https://api.openai.com/v1" autocomplete="off" />
-            </label>
-            <label>Model ID
-              <input name="connectorModelId" placeholder="gpt-5.4" autocomplete="off" />
-            </label>
-            <label>API key
-              <input name="connectorApiKey" placeholder="sk-..." autocomplete="off" />
-            </label>
-            <label>Provider ID
-              <input name="connectorProviderId" placeholder="custom-openai" autocomplete="off" />
-            </label>
-            <label>Compatibility
-              <select name="connectorCompatibility">
-                <option value="openai">OpenAI-compatible</option>
-                <option value="anthropic">Anthropic-compatible</option>
-              </select>
-            </label>
-            <label>Telegram bot token
-              <input name="telegramBotToken" placeholder="123456:telegram-secret" autocomplete="off" />
-            </label>
-          </div>
-          <label>Bot intent
-            <textarea name="rawIntent" rows="4" placeholder="Describe what this bot should do."></textarea>
-          </label>
-        </details>
+        <label>Bot intent
+          <textarea name="rawIntent" rows="5" placeholder="Describe what this bot should do."></textarea>
+        </label>
         <div class="create-actions">
           <button id="create-button" type="submit">Create bot</button>
           <button id="copy-command-button" class="secondary" type="button">Copy CLI command</button>
         </div>
-        <p id="deployment-status" class="form-note">Ready to create.</p>
+        <p id="deployment-status" class="form-note">OpenClaw will guide model and channel setup after the container starts.</p>
       </form>
     </div>
     <section id="terminal-card" class="terminal-card hidden">

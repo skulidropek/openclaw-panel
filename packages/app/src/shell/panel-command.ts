@@ -3,12 +3,7 @@ import { randomUUID } from "node:crypto"
 import { Effect, pipe } from "effect"
 
 import { type BotRecord, newBotRecord, type PanelConfig } from "../core/bot.js"
-import {
-  type BotConnectorCompatibility,
-  type BotConnectorSpec,
-  type BotProvisioningSnapshot,
-  generateBotProvisioningCommand
-} from "../core/provisioning.js"
+import { type BotProvisioningSnapshot, generateBotProvisioningCommand } from "../core/provisioning.js"
 import { cliReadProvisioningSnapshot } from "./docker-provisioning-snapshot.js"
 
 const emptyProvisioningSnapshot: BotProvisioningSnapshot = {
@@ -21,31 +16,13 @@ const emptyProvisioningSnapshot: BotProvisioningSnapshot = {
 const randomGatewayToken = (): string =>
   `${randomUUID().replaceAll("-", "")}${randomUUID().replaceAll("-", "").slice(0, 16)}`
 
-const connectorCompatibilityFromForm = (value: string | null): BotConnectorCompatibility =>
-  value === "anthropic" ? "anthropic" : "openai"
-
 const trimFormValue = (form: URLSearchParams, key: string): string => (form.get(key) ?? "").trim()
 
-const connectorFromForm = (form: URLSearchParams): BotConnectorSpec | null => {
-  const baseUrl = trimFormValue(form, "connectorBaseUrl")
-  const modelId = trimFormValue(form, "connectorModelId")
-  if (baseUrl.length === 0 || modelId.length === 0) {
-    return null
-  }
-  return {
-    apiKey: trimFormValue(form, "connectorApiKey"),
-    baseUrl,
-    compatibility: connectorCompatibilityFromForm(form.get("connectorCompatibility")),
-    modelId,
-    providerId: trimFormValue(form, "connectorProviderId")
-  }
-}
-
 const provisioningSnapshotFromForm = (form: URLSearchParams): BotProvisioningSnapshot => ({
-  connector: connectorFromForm(form),
+  connector: null,
   gatewayToken: randomGatewayToken(),
   rawIntent: trimFormValue(form, "rawIntent"),
-  telegramBotToken: trimFormValue(form, "telegramBotToken")
+  telegramBotToken: ""
 })
 
 const snapshotWithGatewayToken = (snapshot: BotProvisioningSnapshot): BotProvisioningSnapshot => ({
