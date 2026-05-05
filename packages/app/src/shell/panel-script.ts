@@ -61,22 +61,23 @@ const fitTerminal = () => {
 const sendTerminalMessage = (message) => {
   if (socketReady()) socket.send(JSON.stringify(message));
 };
-terminal.onData((data) => sendTerminalMessage({ type: "input", data }));
+const safeCopySelection = () => { const text = terminal.getSelection(); if (text && navigator.clipboard?.writeText) navigator.clipboard.writeText(text); };
+terminal.attachCustomKeyEventHandler((event) => {
+  const blocked = event.type === "keydown" && (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "c";
+  if (blocked) { if (terminal.hasSelection()) safeCopySelection(); terminalStatus.textContent = terminal.hasSelection() ? "Copied" : "Ctrl+C blocked"; return false; }
+  return true;
+});
+terminal.onData((data) => { if (data !== "\x03") sendTerminalMessage({ type: "input", data }); });
 terminal.onResize((size) => sendTerminalMessage({ type: "resize", cols: size.cols, rows: size.rows }));
-if ("ResizeObserver" in window) {
-  new ResizeObserver(() => fitTerminal()).observe(terminalEl);
-}
+if ("ResizeObserver" in window) new ResizeObserver(() => fitTerminal()).observe(terminalEl);
 
 const formParams = () => new URLSearchParams(new FormData(createForm));
 
-const api = async (path, body) => {
-  const response = await fetch(path, {
-    method: body ? "POST" : "GET",
-    headers: body ? { "content-type": "application/x-www-form-urlencoded" } : {},
-    body
-  });
-  return await response.json();
-};
+const api = async (path, body) => (await fetch(path, {
+  method: body ? "POST" : "GET",
+  headers: body ? { "content-type": "application/x-www-form-urlencoded" } : {},
+  body
+})).json();
 
 const showCommandModal = (result) => {
   commandOutput.value = result.error || result.command || "";
