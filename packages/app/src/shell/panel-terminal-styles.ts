@@ -91,7 +91,7 @@ export const panelTerminalStyles = String.raw`
     width: 100%;
     max-width: 100%;
     height: 100%;
-    padding: 14px 16px 16px;
+    padding: 18px 20px 20px;
   }
   .terminal .xterm-screen {
     max-width: 100%;

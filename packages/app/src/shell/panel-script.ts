@@ -31,8 +31,8 @@ const terminal = new Terminal({
   convertEol: true, cursorBlink: true,
   cursorStyle: "block",
   fontFamily: "JetBrains Mono, Menlo, Monaco, Consolas, monospace",
-  fontSize: 16, fontWeight: 500, fontWeightBold: 750,
-  letterSpacing: 0.15, lineHeight: 1.24, scrollback: 5000,
+  fontSize: 22, fontWeight: 600, fontWeightBold: 800,
+  letterSpacing: 0.1, lineHeight: 1.28, scrollback: 5000,
   theme: { background: "#07111f", cursor: "#ffffff", foreground: "#e6f0ff", selectionBackground: "#27466a" }
 });
 const fitAddon = new FitAddon.FitAddon();
