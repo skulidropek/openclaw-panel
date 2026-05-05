@@ -48,7 +48,8 @@ const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (character) => (
 })[character]);
 const botUrl = (bot) => bot.adminUrl || ("/bot-admin/" + encodeURIComponent(bot.id) + "/");
 const socketReady = () => socket && socket.readyState === WebSocket.OPEN;
-const followTerminal = () => window.requestAnimationFrame(() => { const buffer = terminal.buffer.active; terminal.scrollToLine(Math.max(0, buffer.baseY + buffer.cursorY - Math.floor(terminal.rows / 2))); });
+const selectedLine = () => { const buffer = terminal.buffer.active; for (let index = buffer.length - 1; index >= 0; index--) { if ((buffer.getLine(index)?.translateToString(true) || "").includes("●")) return index; } return buffer.baseY + buffer.cursorY; };
+const followTerminal = () => window.requestAnimationFrame(() => terminal.scrollToLine(Math.max(0, selectedLine() - Math.floor(terminal.rows / 2))));
 let pendingTerminalFit = 0;
 const fitTerminal = () => {
   if (pendingTerminalFit) window.cancelAnimationFrame(pendingTerminalFit);
