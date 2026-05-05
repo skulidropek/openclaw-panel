@@ -83,16 +83,23 @@ const createPage = String.raw`
     </div>
     <section id="terminal-card" class="terminal-card hidden">
       <div class="terminal-top">
-        <div>
-          <p class="eyebrow">Onboarding</p>
+        <div class="terminal-heading">
+          <p class="eyebrow">Guided onboarding</p>
           <h2 id="terminal-title">Interactive terminal</h2>
+          <p>Answer OpenClaw prompts here. This is the native OpenClaw terminal, wrapped for easier setup.</p>
         </div>
         <div class="terminal-actions">
           <span id="terminal-status">Idle</span>
           <a href="/bots" data-route="/bots">View bots</a>
         </div>
       </div>
-      <div id="terminal" class="terminal" tabindex="0"></div>
+      <div class="terminal-help" aria-label="Terminal usage tips">
+        <span>Click inside to type</span>
+        <span>Enter submits</span>
+        <span>Arrows navigate</span>
+        <span>Paste works</span>
+      </div>
+      <div id="terminal" class="terminal" tabindex="0" aria-label="OpenClaw onboarding terminal"></div>
     </section>
   </section>`
 

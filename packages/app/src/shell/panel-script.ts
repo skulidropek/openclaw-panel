@@ -28,18 +28,12 @@ let selectedBotId = "";
 let socket = null;
 
 const terminal = new Terminal({
-  convertEol: true,
-  cursorBlink: true,
+  convertEol: true, cursorBlink: true,
   cursorStyle: "block",
   fontFamily: "JetBrains Mono, Menlo, Monaco, Consolas, monospace",
-  fontSize: 14,
-  scrollback: 5000,
-  theme: {
-    background: "#07111f",
-    cursor: "#d8e8ff",
-    foreground: "#d8e8ff",
-    selectionBackground: "#234669"
-  }
+  fontSize: 16, fontWeight: 500, fontWeightBold: 750,
+  letterSpacing: 0.15, lineHeight: 1.24, scrollback: 5000,
+  theme: { background: "#07111f", cursor: "#ffffff", foreground: "#e6f0ff", selectionBackground: "#27466a" }
 });
 const fitAddon = new FitAddon.FitAddon();
 terminal.loadAddon(fitAddon);

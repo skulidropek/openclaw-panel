@@ -1,6 +1,7 @@
 import { panelListStyles } from "./panel-list-styles.js"
 import { panelModalStyles } from "./panel-modal-styles.js"
 import { panelResponsiveStyles } from "./panel-responsive-styles.js"
+import { panelTerminalStyles } from "./panel-terminal-styles.js"
 
 export const panelStyles = String.raw`
   :root {
@@ -178,56 +179,6 @@ export const panelStyles = String.raw`
   button:disabled { cursor: progress; opacity: 0.58; }
   .form-note { color: #5d7598; font-size: 14px; }
   .hidden { display: none !important; }
-  .terminal-card {
-    height: calc(100dvh - 124px);
-    display: grid;
-    grid-template-rows: auto minmax(0, 1fr);
-    overflow: hidden;
-  }
-  .terminal-top {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    align-items: center;
-    padding: 12px 14px;
-    min-width: 0;
-  }
-  .terminal-top h2 {
-    overflow: hidden;
-    font-size: clamp(19px, 2vw, 24px);
-    letter-spacing: -0.03em;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .terminal-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; align-items: center; }
-  .terminal-actions a { background: #eef5ff; color: #126ee2; }
-  .terminal {
-    min-height: 0;
-    min-width: 0;
-    margin: 0 8px 8px;
-    overflow: hidden;
-    border-radius: 18px;
-    background: #07111f;
-  }
-  .terminal:focus-within, .terminal:focus {
-    outline: 3px solid rgba(18, 110, 226, 0.26);
-    outline-offset: -3px;
-  }
-  .terminal .xterm {
-    width: 100%;
-    max-width: 100%;
-    height: 100%;
-    padding: 6px;
-  }
-  .terminal .xterm-screen {
-    max-width: 100%;
-  }
-  .terminal .xterm-viewport {
-    overflow-x: hidden !important;
-    overflow-y: auto !important;
-    scrollbar-color: #41526b #07111f;
-    scrollbar-width: thin;
-  }
   .bots-page {
     min-height: calc(100dvh - 124px);
     display: none;
@@ -292,4 +243,5 @@ export const panelStyles = String.raw`
   }
 ${panelListStyles}
 ${panelModalStyles}
+${panelTerminalStyles}
 ${panelResponsiveStyles}`
