@@ -193,6 +193,9 @@ const prepareOnboardingScript = [
   "systemctl start user@1000.service"
 ].join(" && ")
 
+const waitForSystemdScript =
+  "for attempt in $(seq 1 60); do systemctl list-units --no-pager >/dev/null 2>&1 && exit 0; sleep 1; done; systemctl status --no-pager || true; exit 1"
+
 const postConfigScript = [
   "const fs = require('node:fs');",
   "const path = require('node:path');",
@@ -235,6 +238,15 @@ export const generateBotBootstrapCommand = (spec: BotProvisioningSpec): string =
     dockerLine(["volume", "create", spec.bot.volumeName]),
     dockerLine(dockerArgsForBot(spec)),
     dockerLine(["start", spec.bot.containerName]),
+    dockerLine([
+      "exec",
+      "-u",
+      "root",
+      spec.bot.containerName,
+      "sh",
+      "-lc",
+      waitForSystemdScript
+    ]),
     dockerLine([
       "exec",
       "-u",
