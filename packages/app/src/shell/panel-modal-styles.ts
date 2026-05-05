@@ -52,7 +52,10 @@ export const panelModalStyles = String.raw`
     background: #07111f;
     color: #d8e8ff;
     font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
-    white-space: pre;
+    overflow-x: hidden;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+    word-break: break-word;
   }
   .command-output.compact { min-height: 108px; }
   .modal-actions { justify-content: flex-end; }
