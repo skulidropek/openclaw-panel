@@ -1,33 +1,25 @@
-import { Console, Effect, pipe } from "effect"
-
-import { formatGreeting } from "../core/greeting.js"
-import { readGreetingVariant } from "../shell/cli.js"
-
 /**
- * Compose the CLI program as a single effect.
+ * Compose the OpenClaw panel server as a single effect.
  *
- * @returns Effect that returns the greeting string and logs it once on success.
+ * @returns Effect that starts the local panel server and keeps it alive.
  *
  * @pure false - uses Console output
  * @effect Console
- * @invariant forall args in Argv: decode(args) = v -> logs exactly one greeting
+ * @invariant server is bound exactly once while the runtime scope is alive
  * @precondition true
- * @postcondition exists greeting: returned(greeting) and logged(greeting)
+ * @postcondition local HTTP server accepts panel requests until interrupted
  * @complexity O(1)
  * @throws Never - all errors are typed in the Effect error channel
  */
-// CHANGE: extract the composed program into a reusable Effect
-// WHY: keep the entrypoint as a thin platform runtime shell and make testing deterministic
-// QUOTE(TZ): "\u0414\u0430 \u0434\u0430\u0432\u0430\u0439 \u0442\u0430\u043a \u044d\u0442\u043e \u0431\u043e\u043b\u0435\u0435 \u043f\u0440\u0430\u0432\u0438\u043b\u044c\u043d\u0430\u044f \u0440\u0435\u0430\u043b\u0438\u0437\u0430\u0446\u0438\u044f"
-// REF: user-2025-12-19-platform-node
-// SOURCE: https://effect.website/docs/platform/runtime/ "runMain helps you execute a main effect with built-in error handling, logging, and signal management."
-// FORMAT THEOREM: forall args in Argv: decode(args) = v -> log(formatGreeting(v))
+// CHANGE: replace the demo CLI with the OpenClaw panel server
+// WHY: the product surface is a local Docker orchestration panel, not a greeting command
+// QUOTE(TZ): "Implement the plan."
+// REF: user-2026-05-04-openclaw-panel
+// SOURCE: n/a
+// FORMAT THEOREM: start(program) -> exactly one local HTTP server resource
 // PURITY: SHELL
-// EFFECT: Effect<string, S.ParseError, Console>
-// INVARIANT: exactly one log entry per successful parse
+// EFFECT: Effect<never, Error, Console>
+// INVARIANT: server lifetime is scoped to NodeRuntime
 // COMPLEXITY: O(1)/O(1)
-export const program = pipe(
-  readGreetingVariant,
-  Effect.map((variant) => formatGreeting(variant)),
-  Effect.tap(Console.log)
-)
+
+export { panelServer as program } from "../shell/panel-server.js"
