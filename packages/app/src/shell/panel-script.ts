@@ -1,3 +1,5 @@
+import { panelOnboardingScript } from "./panel-onboarding-script.js"
+
 export const panelScript = String.raw`</main>
 <script src="/assets/xterm.js"></script>
 <script src="/assets/xterm-addon-fit.js"></script>
@@ -39,17 +41,9 @@ const fitAddon = new FitAddon.FitAddon();
 terminal.loadAddon(fitAddon);
 terminal.open(terminalEl);
 
-const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (character) => ({
-  "&": "&amp;",
-  "<": "&lt;",
-  ">": "&gt;",
-  "\"": "&quot;",
-  "'": "&#39;"
-})[character]);
+const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[character]);
 const botUrl = (bot) => bot.adminUrl || ("/bot-admin/" + encodeURIComponent(bot.id) + "/");
 const socketReady = () => socket && socket.readyState === WebSocket.OPEN;
-const selectedLine = () => { const buffer = terminal.buffer.active; for (let index = buffer.length - 1; index >= 0; index--) { if ((buffer.getLine(index)?.translateToString(true) || "").includes("●")) return index; } return buffer.baseY + buffer.cursorY; };
-const followTerminal = () => window.requestAnimationFrame(() => terminal.scrollToLine(Math.max(0, selectedLine() - Math.floor(terminal.rows / 2))));
 let pendingTerminalFit = 0;
 const fitTerminal = () => {
   if (pendingTerminalFit) window.cancelAnimationFrame(pendingTerminalFit);
@@ -57,23 +51,14 @@ const fitTerminal = () => {
     pendingTerminalFit = 0;
     if (!terminalEl.offsetParent) return;
     fitAddon.fit();
-    followTerminal();
+    keepTerminalLiveViewport();
     sendTerminalMessage({ type: "resize", cols: terminal.cols, rows: terminal.rows });
   });
 };
 const sendTerminalMessage = (message) => {
   if (socketReady()) socket.send(JSON.stringify(message));
 };
-const safeCopySelection = () => { const text = terminal.getSelection(); if (text && navigator.clipboard?.writeText) navigator.clipboard.writeText(text); };
-terminal.attachCustomKeyEventHandler((event) => {
-  const blocked = event.type === "keydown" && (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "c";
-  if (blocked) { if (terminal.hasSelection()) safeCopySelection(); terminalStatus.textContent = terminal.hasSelection() ? "Copied" : "Ctrl+C blocked"; return false; }
-  if (event.type === "keydown") followTerminal();
-  return true;
-});
-terminal.onData((data) => { if (data !== "\x03") { sendTerminalMessage({ type: "input", data }); followTerminal(); } });
-terminal.onResize((size) => { followTerminal(); sendTerminalMessage({ type: "resize", cols: size.cols, rows: size.rows }); });
-if ("ResizeObserver" in window) new ResizeObserver(() => fitTerminal()).observe(terminalEl);
+${panelOnboardingScript}
 
 const formParams = () => new URLSearchParams(new FormData(createForm));
 
@@ -118,6 +103,7 @@ const setRoute = (path) => {
 };
 const resetCreateForm = () => {
   createPage.classList.remove("onboarding-active"); createStart.classList.remove("hidden"); terminalCard.classList.add("hidden");
+  setTerminalLiveViewport(false);
   deploymentStatus.textContent = "Ready to create.";
 };
 const renderRoute = () => {
@@ -211,25 +197,39 @@ botsEl.addEventListener("click", (event) => {
 
 const showTerminal = (bot) => {
   createPage.classList.add("onboarding-active"); createStart.classList.add("hidden"); terminalCard.classList.remove("hidden");
+  setTerminalLiveViewport(true);
   window.scrollTo(0, 0);
   terminalTitle.textContent = bot ? "Onboarding · " + bot.name : "Interactive terminal";
-  window.requestAnimationFrame(() => { fitTerminal(); terminal.focus(); followTerminal(); });
+  window.requestAnimationFrame(() => { fitTerminal(); terminal.focus(); keepTerminalLiveViewport(); });
 };
 
 const connectOnboarding = (sessionId, bot) => {
+  activeOnboardingSessionId = sessionId;
+  onboardingReachedHandoff = false;
   if (socket) socket.close();
   showTerminal(bot);
   terminal.clear();
   terminal.reset();
   terminalStatus.textContent = "Connecting";
   socket = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/api/onboarding/" + sessionId);
-  socket.onmessage = (event) => terminal.write(event.data, followTerminal);
+  socket.onmessage = (event) => {
+    if (activeOnboardingSessionId !== sessionId) return;
+    observeOnboardingOutput(event.data);
+    terminal.write(event.data, keepTerminalLiveViewport);
+  };
   socket.onclose = () => {
-    terminalStatus.textContent = "Closed";
-    terminal.write("\r\n[session closed]\r\n", followTerminal);
+    if (activeOnboardingSessionId !== sessionId) return;
+    socket = null;
+    terminalStatus.textContent = onboardingReachedHandoff ? "Opening bot" : "Closed";
+    terminal.write("\r\n[session closed]\r\n", keepTerminalLiveViewport);
+    if (onboardingReachedHandoff) {
+      openSelectedBotAfterOnboarding(bot);
+      return;
+    }
     loadBots();
   };
   socket.onopen = () => {
+    if (activeOnboardingSessionId !== sessionId) return;
     terminalStatus.textContent = "Interactive";
     fitTerminal();
     terminal.focus();

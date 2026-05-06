@@ -8,6 +8,7 @@ import { runDocker } from "./docker-cli.js"
 const provisioningSnapshotScript = [
   "const fs=require('node:fs');",
   "const file='/home/node/.openclaw/openclaw.json';",
+  "const intentFile='/home/node/.openclaw/workspace/PANEL_INTENT.md';",
   "const cfg=fs.existsSync(file)?JSON.parse(fs.readFileSync(file,'utf8')):{};",
   "const isRecord=(value)=>value!==null&&typeof value==='object'&&!Array.isArray(value);",
   "const get=(owner,key)=>isRecord(owner)?owner[key]:undefined;",
@@ -19,7 +20,8 @@ const provisioningSnapshotScript = [
   "const provider=get(get(get(cfg,'models'),'providers'),providerId);",
   "const hasCustomProvider=isRecord(provider)&&text(provider.baseUrl).length>0&&modelId.length>0;",
   "const connector=hasCustomProvider?{providerId,modelId,baseUrl:text(provider.baseUrl),apiKey:text(provider.apiKey),compatibility:provider.api==='anthropic-messages'?'anthropic':'openai'}:null;",
-  "const snapshot={gatewayToken:text(get(get(get(cfg,'gateway'),'auth'),'token')),telegramBotToken:text(get(get(get(cfg,'channels'),'telegram'),'botToken')),rawIntent:'',connector};",
+  "const rawIntent=fs.existsSync(intentFile)?fs.readFileSync(intentFile,'utf8').trim():'';",
+  "const snapshot={gatewayToken:text(get(get(get(cfg,'gateway'),'auth'),'token')),telegramBotToken:text(get(get(get(cfg,'channels'),'telegram'),'botToken')),rawIntent,connector};",
   "process.stdout.write(JSON.stringify(snapshot));"
 ].join("")
 

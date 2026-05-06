@@ -106,4 +106,7 @@ export const panelTerminalStyles = String.raw`
     scrollbar-color: #536986 #07111f;
     scrollbar-width: thin;
   }
+  .terminal-card.live-viewport .terminal .xterm-viewport {
+    overflow-y: hidden !important;
+  }
 `

@@ -25,6 +25,7 @@ export type OnboardingSession = {
   readonly botId: string
   readonly containerId: string
   readonly id: string
+  readonly rawIntent: string
 }
 
 export type PanelRuntime = {
@@ -37,6 +38,14 @@ const parseAction = (value: string | null): BotAction | null =>
     || value === "status" || value === "onboard"
     ? value
     : null
+
+const trimFormValue = (form: URLSearchParams, key: string): string => (form.get(key) ?? "").trim()
+
+const formFromRequest = (request: IncomingMessage) =>
+  pipe(
+    readBody(request),
+    Effect.map((body) => parseForm(body))
+  )
 
 const botResponse = (bot: BotRecord) => ({
   adminUrl: botAdminUrl(bot.id),
@@ -57,7 +66,7 @@ export const findBot = (botId: string) =>
     })
   )
 
-const createBot = (runtime: PanelRuntime, name: string) =>
+const createBot = (runtime: PanelRuntime, name: string, rawIntent: string) =>
   pipe(
     readSyncedPanelState,
     Effect.flatMap((state) => {
@@ -80,7 +89,8 @@ const createBot = (runtime: PanelRuntime, name: string) =>
           const session = {
             botId: saved.id,
             containerId,
-            id: randomUUID()
+            id: randomUUID(),
+            rawIntent
           }
           runtime.sessions.set(session.id, session)
           return updateBot(saved).pipe(Effect.as({ bot: saved, session }))
@@ -101,11 +111,12 @@ const exportBotCommand = (runtime: PanelRuntime, botId: string) =>
     Effect.flatMap((bot) => exportCommandForBot(runtime.config, bot))
   )
 
-const createOnboardingSession = (runtime: PanelRuntime, bot: BotRecord): OnboardingSession => {
+const createOnboardingSession = (runtime: PanelRuntime, bot: BotRecord, rawIntent = ""): OnboardingSession => {
   const session = {
     botId: bot.id,
     containerId: bot.containerId,
-    id: randomUUID()
+    id: randomUUID(),
+    rawIntent
   }
   runtime.sessions.set(session.id, session)
   return session
@@ -167,17 +178,17 @@ const handlePostRequest = (
 ) => {
   if (pathname === "/api/bots/preview-command") {
     return pipe(
-      readBody(request),
-      Effect.map((body) => parseForm(body)),
+      formFromRequest(request),
       Effect.flatMap((form) => previewBotCommand(runtime, form)),
       Effect.flatMap((command) => sendJson(response, 200, command))
     )
   }
   if (pathname === "/api/bots") {
     return pipe(
-      readBody(request),
-      Effect.map((body) => parseForm(body)),
-      Effect.flatMap((form) => createBot(runtime, form.get("name") ?? "openclaw-bot")),
+      formFromRequest(request),
+      Effect.flatMap((form) =>
+        createBot(runtime, trimFormValue(form, "name") || "openclaw-bot", trimFormValue(form, "rawIntent"))
+      ),
       Effect.flatMap(({ bot, session }) => sendJson(response, 200, { bot: botResponse(bot), sessionId: session.id }))
     )
   }
@@ -186,8 +197,7 @@ const handlePostRequest = (
     return notFound(response)
   }
   return pipe(
-    readBody(request),
-    Effect.map((body) => parseForm(body)),
+    formFromRequest(request),
     Effect.flatMap((form) => {
       const action = parseAction(form.get("action"))
       return action === null ? Effect.fail(new Error("Unknown action.")) : handleAction(runtime, botId, action)
@@ -230,13 +240,13 @@ export const handlePanelRequestSafely = (
   )
 }
 
-export const findOnboardingContainerId = (runtime: PanelRuntime, sessionId: string) => {
+export const findOnboardingSession = (runtime: PanelRuntime, sessionId: string) => {
   return pipe(
     Effect.succeed(runtime.sessions.get(sessionId)),
     Effect.flatMap((session) =>
       session === undefined
         ? Effect.fail(new Error("Onboarding session was not found."))
-        : Effect.succeed(session.containerId)
+        : Effect.succeed(session)
     )
   )
 }

@@ -3,6 +3,12 @@ import { Effect } from "effect"
 
 import { defaultPanelConfig, newBotRecord } from "../../src/core/bot.js"
 import {
+  panelIdentityChatPayload,
+  panelIdentityChatPrompt,
+  panelIdentityPayload,
+  panelIdentityStandaloneScript
+} from "../../src/core/identity.js"
+import {
   type BotProvisioningSpec,
   generateBotProvisioningCommand,
   generateOpenClawOnboardCommand,
@@ -60,6 +66,26 @@ describe("provisioning command core", () => {
       expect(command.command).toContain("-p 127.0.0.1:18789:18789")
       expect(command.command).toContain("openclaw daemon install && openclaw daemon restart")
       expect(command.command).toContain("'key with '\"'\"' quote; rm -rf /'")
+      expect(command.command).toContain("PANEL_INTENT.md")
+      expect(command.command).toContain("BOOTSTRAP.md")
+      expect(command.command).toContain("chat.send")
+      expect(command.command).toContain("Answer only about sales.")
+    }))
+
+  it.effect("builds a panel identity bootstrap script payload", () =>
+    Effect.sync(() => {
+      expect(panelIdentityStandaloneScript).toContain("const writePanelIdentity")
+      expect(panelIdentityStandaloneScript).toContain("PANEL_INTENT.md")
+      expect(panelIdentityStandaloneScript).toContain("IDENTITY.md")
+      expect(panelIdentityStandaloneScript).toContain("SOUL.md")
+      expect(panelIdentityPayload("Answer only about sales.")).toBe("{\"rawIntent\":\"Answer only about sales.\"}")
+    }))
+
+  it.effect("builds the first OpenClaw chat identity prompt", () =>
+    Effect.sync(() => {
+      expect(panelIdentityChatPrompt("Answer only about sales.")).toContain("первое сообщение новой сессии")
+      expect(panelIdentityChatPrompt("Answer only about sales.")).toContain("Answer only about sales.")
+      expect(panelIdentityChatPayload("Answer only about sales.")).toContain("\"sessionKey\":\"agent:main:main\"")
     }))
 
   it.effect("uses OpenClaw auth skip when no connector is selected", () =>

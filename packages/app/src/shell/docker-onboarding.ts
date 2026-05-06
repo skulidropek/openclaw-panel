@@ -2,6 +2,12 @@ import { type IPty, spawn as spawnPty } from "node-pty"
 
 import { Effect, pipe } from "effect"
 
+import {
+  panelIdentityChatBootstrapScript,
+  panelIdentityChatPayload,
+  panelIdentityPayload,
+  panelIdentityStandaloneScript
+} from "../core/identity.js"
 import { DockerCliError, type DockerCommandSpec, resolveDockerCommand, runWithSpec } from "./docker-cli.js"
 
 export type InteractiveDockerProcess = {
@@ -32,7 +38,8 @@ const onboardingExecArgs = (containerId: string): ReadonlyArray<string> => [
   containerId,
   "openclaw",
   "onboard",
-  "--install-daemon"
+  "--install-daemon",
+  "--skip-ui"
 ]
 
 const prepareOnboardingCommand = [
@@ -60,7 +67,7 @@ const finalizeOnboardingCommand = [
   "openclaw daemon restart"
 ].join(" && ")
 
-const finalizeOnboardingArgs = (containerId: string): ReadonlyArray<string> => [
+const nodeExecPrefix = (containerId: string): ReadonlyArray<string> => [
   "exec",
   "-u",
   "node",
@@ -72,10 +79,30 @@ const finalizeOnboardingArgs = (containerId: string): ReadonlyArray<string> => [
   "XDG_RUNTIME_DIR=/run/user/1000",
   "-e",
   "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus",
-  containerId,
+  containerId
+]
+
+const finalizeOnboardingArgs = (containerId: string): ReadonlyArray<string> => [
+  ...nodeExecPrefix(containerId),
   "sh",
   "-lc",
   finalizeOnboardingCommand
+]
+
+const panelIdentityArgs = (containerId: string, rawIntent: string): ReadonlyArray<string> => [
+  ...nodeExecPrefix(containerId),
+  "node",
+  "-e",
+  panelIdentityStandaloneScript,
+  panelIdentityPayload(rawIntent)
+]
+
+const panelIdentityChatArgs = (containerId: string, rawIntent: string): ReadonlyArray<string> => [
+  ...nodeExecPrefix(containerId),
+  "node",
+  "-e",
+  panelIdentityChatBootstrapScript,
+  panelIdentityChatPayload(rawIntent)
 ]
 
 const wireInteractiveChild = (
@@ -139,10 +166,26 @@ const withPreparedOnboarding = <A>(
     )
   )
 
-export const finalizeOnboardingProcess = (containerId: string) =>
+const writePanelIdentity = (spec: DockerCommandSpec, containerId: string, rawIntent: string) =>
+  rawIntent.trim().length === 0
+    ? Effect.void
+    : runWithSpec(spec, panelIdentityArgs(containerId, rawIntent)).pipe(Effect.asVoid)
+
+const sendPanelIdentityChat = (spec: DockerCommandSpec, containerId: string, rawIntent: string) =>
+  rawIntent.trim().length === 0
+    ? Effect.void
+    : runWithSpec(spec, panelIdentityChatArgs(containerId, rawIntent)).pipe(Effect.asVoid)
+
+export const finalizeOnboardingProcess = (containerId: string, rawIntent = "") =>
   withPreparedOnboarding(
     containerId,
-    (spec) => runWithSpec(spec, finalizeOnboardingArgs(containerId)).pipe(Effect.asVoid)
+    (spec) =>
+      pipe(
+        writePanelIdentity(spec, containerId, rawIntent),
+        Effect.flatMap(() => runWithSpec(spec, finalizeOnboardingArgs(containerId))),
+        Effect.flatMap(() => sendPanelIdentityChat(spec, containerId, rawIntent)),
+        Effect.asVoid
+      )
   )
 
 export const startOnboardingProcess = (

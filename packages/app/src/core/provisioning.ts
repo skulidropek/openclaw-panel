@@ -1,4 +1,10 @@
 import type { BotRecord, PanelConfig } from "./bot.js"
+import {
+  panelIdentityChatBootstrapScript,
+  panelIdentityChatPayload,
+  panelIdentityFunctionScript,
+  panelIdentityScriptCall
+} from "./identity.js"
 
 export type BotConnectorCompatibility = "anthropic" | "openai"
 
@@ -216,8 +222,8 @@ const postConfigScript = [
   "if (typeof payload.telegramBotToken === 'string' && payload.telegramBotToken.trim()) { const channels = record(config, 'channels'); const telegram = record(channels, 'telegram'); telegram.enabled = true; telegram.dmPolicy = 'pairing'; telegram.botToken = payload.telegramBotToken.trim(); telegram.groupPolicy = 'allowlist'; telegram.streaming = 'partial'; const plugins = record(config, 'plugins'); const entries = record(plugins, 'entries'); const telegramPlugin = record(entries, 'telegram'); telegramPlugin.enabled = true; }",
   "fs.mkdirSync(path.dirname(file), { recursive: true });",
   String.raw`fs.writeFileSync(file, JSON.stringify(config, null, 2) + '\n', 'utf8');`,
-  String
-    .raw`if (typeof payload.rawIntent === 'string' && payload.rawIntent.trim()) { fs.mkdirSync(workspace, { recursive: true }); const agents = path.join(workspace, 'AGENTS.md'); const addition = ['','## Panel bot intent','',payload.rawIntent.trim(),''].join('\n'); const current = fs.existsSync(agents) ? fs.readFileSync(agents, 'utf8') : '# OpenClaw bot\n'; if (!current.includes('## Panel bot intent')) fs.writeFileSync(agents, current.replace(/\s*$/u, '') + addition, 'utf8'); }`
+  panelIdentityFunctionScript,
+  panelIdentityScriptCall
 ].join("")
 
 const postConfigPayload = (spec: BotProvisioningSpec): string =>
@@ -256,6 +262,12 @@ export const generateBotBootstrapCommand = (spec: BotProvisioningSpec): string =
       "sh",
       "-lc",
       "openclaw daemon install && openclaw daemon restart"
+    ])),
+    dockerLine(dockerExecNodeArgs(spec.bot.containerName, [
+      "node",
+      "-e",
+      panelIdentityChatBootstrapScript,
+      panelIdentityChatPayload(spec.rawIntent)
     ])),
     "OPENCLAW_PANEL_BOOTSTRAP"
   ].join("\n")

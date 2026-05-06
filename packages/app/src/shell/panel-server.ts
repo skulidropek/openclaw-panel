@@ -12,7 +12,13 @@ import {
   type InteractiveDockerProcess,
   startOnboardingProcess
 } from "./docker-onboarding.js"
-import { findBot, findOnboardingContainerId, handlePanelRequestSafely, type PanelRuntime } from "./panel-service.js"
+import {
+  findBot,
+  findOnboardingSession,
+  handlePanelRequestSafely,
+  type OnboardingSession,
+  type PanelRuntime
+} from "./panel-service.js"
 import {
   decodeClientFrames,
   encodeBufferFrame,
@@ -123,10 +129,16 @@ const applyOnboardingMessage = (process: InteractiveDockerProcess, message: Onbo
   }
 }
 
-const finalizeAndCloseSocket = (containerId: string, socket: Duplex): void => {
-  writeSocket(socket, encodeTextFrame("\n[finalizing OpenClaw daemon]\n"))
+const finalizeAndCloseSocket = (session: OnboardingSession, socket: Duplex): void => {
+  writeSocket(
+    socket,
+    encodeTextFrame(
+      "\n[finalizing OpenClaw daemon]\nOpenClaw is applying gateway settings and waiting for health checks. This can take up to 60s.\n"
+        + "After the gateway is ready, the panel sends the role as the first OpenClaw chat message.\n"
+    )
+  )
   pipe(
-    finalizeOnboardingProcess(containerId),
+    finalizeOnboardingProcess(session.containerId, session.rawIntent),
     Effect.matchEffect({
       onFailure: (error) =>
         Effect.sync(() => {
@@ -146,14 +158,14 @@ const finalizeAndCloseSocket = (containerId: string, socket: Duplex): void => {
 const attachExecToSocket = (runtime: PanelRuntime, sessionId: string, socket: Duplex) => {
   let clientClosed = false
   return pipe(
-    findOnboardingContainerId(runtime, sessionId),
-    Effect.flatMap((containerId) =>
-      startOnboardingProcess(containerId, {
+    findOnboardingSession(runtime, sessionId),
+    Effect.flatMap((session) =>
+      startOnboardingProcess(session.containerId, {
         onData: (chunk) => {
           writeSocket(socket, encodeBufferFrame(chunk))
         },
         onEnd: () => {
-          if (!clientClosed) finalizeAndCloseSocket(containerId, socket)
+          if (!clientClosed) finalizeAndCloseSocket(session, socket)
         },
         onError: (error) => {
           writeSocket(socket, encodeTextFrame(`\n[Docker error] ${error.message}\n`))
