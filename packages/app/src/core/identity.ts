@@ -102,7 +102,7 @@ export const panelIdentityChatBootstrapScript = [
   "  } catch {}",
   "}",
   "const params = JSON.stringify({ sessionKey, message, deliver: false, idempotencyKey });",
-  "const result = spawnSync('openclaw', ['gateway', 'call', 'chat.send', '--json', '--timeout', '15000', '--params', params], { encoding: 'utf8', env: { ...process.env, HOME: '/home/node', TERM: process.env.TERM || 'xterm-256color' } });",
+  "const result = spawnSync('openclaw', ['gateway', 'call', 'chat.send', '--json', '--expect-final', '--timeout', '600000', '--params', params], { encoding: 'utf8', env: { ...process.env, HOME: '/home/node', TERM: process.env.TERM || 'xterm-256color' } });",
   "if (result.status !== 0) {",
   "  process.stderr.write(result.stderr || result.stdout || 'openclaw gateway chat.send failed');",
   "  process.exit(result.status || 1);",

@@ -16,10 +16,20 @@ export type InteractiveDockerProcess = {
   readonly write: (chunk: Buffer) => void
 }
 
+export type OnboardingFinalizeStage =
+  | "gateway-restart"
+  | "identity-files"
+  | "identity-ready"
+  | "role-chat"
+
 type InteractiveHandlers = {
   readonly onData: (chunk: Buffer) => void
   readonly onEnd: () => void
   readonly onError: (error: DockerCliError) => void
+}
+
+type FinalizeHandlers = {
+  readonly onStage?: (stage: OnboardingFinalizeStage) => void
 }
 
 const onboardingExecArgs = (containerId: string): ReadonlyArray<string> => [
@@ -176,14 +186,23 @@ const sendPanelIdentityChat = (spec: DockerCommandSpec, containerId: string, raw
     ? Effect.void
     : runWithSpec(spec, panelIdentityChatArgs(containerId, rawIntent)).pipe(Effect.asVoid)
 
-export const finalizeOnboardingProcess = (containerId: string, rawIntent = "") =>
+const emitFinalizeStage = (handlers: FinalizeHandlers, stage: OnboardingFinalizeStage) =>
+  Effect.sync(() => {
+    handlers.onStage?.(stage)
+  })
+
+export const finalizeOnboardingProcess = (containerId: string, rawIntent = "", handlers: FinalizeHandlers = {}) =>
   withPreparedOnboarding(
     containerId,
     (spec) =>
       pipe(
-        writePanelIdentity(spec, containerId, rawIntent),
+        emitFinalizeStage(handlers, "identity-files"),
+        Effect.flatMap(() => writePanelIdentity(spec, containerId, rawIntent)),
+        Effect.flatMap(() => emitFinalizeStage(handlers, "gateway-restart")),
         Effect.flatMap(() => runWithSpec(spec, finalizeOnboardingArgs(containerId))),
+        Effect.flatMap(() => emitFinalizeStage(handlers, "role-chat")),
         Effect.flatMap(() => sendPanelIdentityChat(spec, containerId, rawIntent)),
+        Effect.flatMap(() => emitFinalizeStage(handlers, "identity-ready")),
         Effect.asVoid
       )
   )

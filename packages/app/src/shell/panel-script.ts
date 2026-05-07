@@ -16,6 +16,9 @@ const deploymentStatus = document.getElementById("deployment-status");
 const terminalEl = document.getElementById("terminal");
 const terminalTitle = document.getElementById("terminal-title");
 const terminalStatus = document.getElementById("terminal-status");
+const setupProgress = document.getElementById("setup-progress");
+const setupProgressTitle = document.getElementById("setup-progress-title");
+const setupProgressDetail = document.getElementById("setup-progress-detail");
 const botsEl = document.getElementById("bots");
 const botDetailEl = document.getElementById("bot-detail");
 const navBotCount = document.getElementById("nav-bot-count");
@@ -98,16 +101,26 @@ commandModal.addEventListener("click", (event) => {
 
 const pageName = () => location.pathname === "/bots" ? "bots" : "create";
 const setRoute = (path) => {
+  if (onboardingAccessLocked && path === "/bots") {
+    showSetupBlockedMessage();
+    return;
+  }
   history.pushState({}, "", path);
   renderRoute();
 };
 const resetCreateForm = () => {
   createPage.classList.remove("onboarding-active"); createStart.classList.remove("hidden"); terminalCard.classList.add("hidden");
   setTerminalLiveViewport(false);
+  resetSetupProgress();
   deploymentStatus.textContent = "Ready to create.";
 };
 const renderRoute = () => {
-  const current = pageName();
+  let current = pageName();
+  if (onboardingAccessLocked && current === "bots") {
+    history.replaceState({}, "", "/create");
+    current = "create";
+    showSetupBlockedMessage();
+  }
   document.body.classList.toggle("create-route", current === "create");
   createPage.classList.toggle("active", current === "create");
   botsPage.classList.toggle("active", current === "bots");
@@ -205,12 +218,16 @@ const showTerminal = (bot) => {
 
 const connectOnboarding = (sessionId, bot) => {
   activeOnboardingSessionId = sessionId;
+  onboardingFinalizeFailed = false;
+  onboardingReadyForAccess = false;
   onboardingReachedHandoff = false;
+  setOnboardingAccessLocked(true);
   if (socket) socket.close();
   showTerminal(bot);
   terminal.clear();
   terminal.reset();
   terminalStatus.textContent = "Connecting";
+  setSetupProgress("Loading...", "Starting native OpenClaw onboarding. Access unlocks after setup and identity bootstrap complete.");
   socket = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/api/onboarding/" + sessionId);
   socket.onmessage = (event) => {
     if (activeOnboardingSessionId !== sessionId) return;
@@ -220,12 +237,20 @@ const connectOnboarding = (sessionId, bot) => {
   socket.onclose = () => {
     if (activeOnboardingSessionId !== sessionId) return;
     socket = null;
-    terminalStatus.textContent = onboardingReachedHandoff ? "Opening bot" : "Closed";
     terminal.write("\r\n[session closed]\r\n", keepTerminalLiveViewport);
-    if (onboardingReachedHandoff) {
+    if (onboardingReadyForAccess) {
+      terminalStatus.textContent = "Opening bot";
       openSelectedBotAfterOnboarding(bot);
       return;
     }
+    if (onboardingReachedHandoff || onboardingFinalizeFailed) {
+      terminalStatus.textContent = onboardingFinalizeFailed ? "Setup failed" : "Loading stopped";
+      setOnboardingAccessLocked(false);
+      loadBots();
+      return;
+    }
+    terminalStatus.textContent = "Closed";
+    setOnboardingAccessLocked(false);
     loadBots();
   };
   socket.onopen = () => {

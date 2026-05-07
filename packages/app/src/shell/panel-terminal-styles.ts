@@ -66,6 +66,57 @@ export const panelTerminalStyles = String.raw`
     font-size: 13px;
     font-weight: 850;
   }
+  .setup-progress {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin: 0 20px 14px;
+    border: 1px solid rgba(18, 110, 226, 0.18);
+    border-radius: 18px;
+    padding: 12px 14px;
+    background: rgba(238, 245, 255, 0.86);
+    color: #10233d;
+  }
+  .setup-progress strong {
+    display: block;
+    font-size: 14px;
+    line-height: 1.2;
+  }
+  .setup-progress p {
+    margin-top: 2px;
+    color: #5d7598;
+    font-size: 13px;
+    line-height: 1.35;
+  }
+  .setup-spinner {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 auto;
+    border: 3px solid rgba(18, 110, 226, 0.16);
+    border-top-color: #126ee2;
+    border-radius: 999px;
+    animation: setup-spin 0.9s linear infinite;
+  }
+  .setup-progress.complete .setup-spinner {
+    border-color: #2ab673;
+    animation: none;
+  }
+  .setup-progress.complete .setup-spinner::after {
+    display: block;
+    color: #2ab673;
+    content: "✓";
+    font-size: 12px;
+    font-weight: 900;
+    line-height: 13px;
+    text-align: center;
+  }
+  body.onboarding-locked [data-route="/bots"] {
+    cursor: wait;
+    opacity: 0.58;
+  }
+  @keyframes setup-spin {
+    to { transform: rotate(360deg); }
+  }
   .terminal {
     display: grid;
     grid-template-rows: 10px minmax(0, 1fr);

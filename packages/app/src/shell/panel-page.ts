@@ -73,6 +73,13 @@ const createPage = String.raw`
         <span>Arrows navigate</span>
         <span>Paste works</span>
       </div>
+      <div id="setup-progress" class="setup-progress hidden" aria-live="polite">
+        <span class="setup-spinner" aria-hidden="true"></span>
+        <div>
+          <strong id="setup-progress-title">Loading...</strong>
+          <p id="setup-progress-detail">Waiting for OpenClaw setup.</p>
+        </div>
+      </div>
       <div id="terminal" class="terminal" tabindex="0" aria-label="OpenClaw onboarding terminal"></div>
     </section>
   </section>`

@@ -10,6 +10,7 @@ import { readPanelConfig } from "./config.js"
 import {
   finalizeOnboardingProcess,
   type InteractiveDockerProcess,
+  type OnboardingFinalizeStage,
   startOnboardingProcess
 } from "./docker-onboarding.js"
 import {
@@ -129,16 +130,36 @@ const applyOnboardingMessage = (process: InteractiveDockerProcess, message: Onbo
   }
 }
 
+const finalizeStageMessage = (stage: OnboardingFinalizeStage): string => {
+  if (stage === "identity-files") {
+    return "Loading... saving bot role inside the OpenClaw workspace."
+  }
+  if (stage === "gateway-restart") {
+    return "Loading... applying gateway settings and restarting OpenClaw."
+  }
+  if (stage === "role-chat") {
+    return "Loading... sending the role to OpenClaw chat and waiting for identity bootstrap."
+  }
+  return "Loading complete. OpenClaw identity is ready."
+}
+
+const writeFinalizeStage = (socket: Duplex, stage: OnboardingFinalizeStage): void => {
+  writeSocket(socket, encodeTextFrame(`\n[setup-stage:${stage}] ${finalizeStageMessage(stage)}\n`))
+}
+
 const finalizeAndCloseSocket = (session: OnboardingSession, socket: Duplex): void => {
   writeSocket(
     socket,
     encodeTextFrame(
-      "\n[finalizing OpenClaw daemon]\nOpenClaw is applying gateway settings and waiting for health checks. This can take up to 60s.\n"
-        + "After the gateway is ready, the panel sends the role as the first OpenClaw chat message.\n"
+      "\n[finalizing OpenClaw daemon]\nLoading... the panel is finishing setup before access is enabled.\n"
     )
   )
   pipe(
-    finalizeOnboardingProcess(session.containerId, session.rawIntent),
+    finalizeOnboardingProcess(session.containerId, session.rawIntent, {
+      onStage: (stage) => {
+        writeFinalizeStage(socket, stage)
+      }
+    }),
     Effect.matchEffect({
       onFailure: (error) =>
         Effect.sync(() => {
