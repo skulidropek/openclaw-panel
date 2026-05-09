@@ -1,0 +1,217 @@
+import { type IPty, spawn as spawnPty } from "node-pty"
+
+import { Effect, pipe } from "effect"
+
+import {
+  panelIdentityChatBootstrapScript,
+  panelIdentityChatPayload,
+  panelIdentityPayload,
+  panelIdentityStandaloneScript
+} from "../core/identity.js"
+import { DockerCliError, type DockerCommandSpec, resolveDockerCommand, runWithSpec } from "./docker-cli.js"
+
+export type InteractiveDockerProcess = {
+  readonly kill: () => void
+  readonly resize: (cols: number, rows: number) => void
+  readonly write: (chunk: Buffer) => void
+}
+
+export type OnboardingFinalizeStage =
+  | "gateway-restart"
+  | "identity-files"
+  | "identity-ready"
+  | "role-chat"
+
+type InteractiveHandlers = {
+  readonly onData: (chunk: Buffer) => void
+  readonly onEnd: () => void
+  readonly onError: (error: DockerCliError) => void
+}
+
+type FinalizeHandlers = {
+  readonly onStage?: (stage: OnboardingFinalizeStage) => void
+}
+
+const onboardingExecArgs = (containerId: string): ReadonlyArray<string> => [
+  "exec",
+  "-it",
+  "-u",
+  "node",
+  "-e",
+  "HOME=/home/node",
+  "-e",
+  "TERM=xterm-256color",
+  "-e",
+  "XDG_RUNTIME_DIR=/run/user/1000",
+  "-e",
+  "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus",
+  containerId,
+  "openclaw",
+  "onboard",
+  "--install-daemon",
+  "--skip-ui"
+]
+
+const prepareOnboardingCommand = [
+  "mkdir -p /home/node/.openclaw/agents/main /home/node/.openclaw/workspace /home/node/.config/systemd/user /run/user/1000",
+  "chown -R node:node /home/node/.openclaw /home/node/.config /run/user/1000",
+  "chmod 700 /run/user/1000"
+].join(" && ")
+
+const prepareOnboardingArgs = (containerId: string): ReadonlyArray<string> => [
+  "exec",
+  "-u",
+  "root",
+  containerId,
+  "sh",
+  "-lc",
+  prepareOnboardingCommand
+]
+
+const finalizeOnboardingCommand = [
+  "openclaw config set gateway.mode local",
+  "openclaw config set gateway.bind lan",
+  "openclaw config set gateway.controlUi.allowInsecureAuth true",
+  "openclaw config set gateway.controlUi.dangerouslyDisableDeviceAuth true",
+  "openclaw daemon install",
+  "openclaw daemon restart"
+].join(" && ")
+
+const nodeExecPrefix = (containerId: string): ReadonlyArray<string> => [
+  "exec",
+  "-u",
+  "node",
+  "-e",
+  "HOME=/home/node",
+  "-e",
+  "TERM=xterm-256color",
+  "-e",
+  "XDG_RUNTIME_DIR=/run/user/1000",
+  "-e",
+  "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus",
+  containerId
+]
+
+const finalizeOnboardingArgs = (containerId: string): ReadonlyArray<string> => [
+  ...nodeExecPrefix(containerId),
+  "sh",
+  "-lc",
+  finalizeOnboardingCommand
+]
+
+const panelIdentityArgs = (containerId: string, rawIntent: string): ReadonlyArray<string> => [
+  ...nodeExecPrefix(containerId),
+  "node",
+  "-e",
+  panelIdentityStandaloneScript,
+  panelIdentityPayload(rawIntent)
+]
+
+const panelIdentityChatArgs = (containerId: string, rawIntent: string): ReadonlyArray<string> => [
+  ...nodeExecPrefix(containerId),
+  "node",
+  "-e",
+  panelIdentityChatBootstrapScript,
+  panelIdentityChatPayload(rawIntent)
+]
+
+const wireInteractiveChild = (
+  child: IPty,
+  handlers: InteractiveHandlers
+): InteractiveDockerProcess => {
+  child.onData((chunk) => {
+    handlers.onData(Buffer.from(chunk, "utf8"))
+  })
+  child.onExit(() => {
+    handlers.onEnd()
+  })
+  return {
+    kill: () => {
+      child.kill("SIGTERM")
+    },
+    resize: (cols, rows) => {
+      child.resize(cols, rows)
+    },
+    write: (chunk) => {
+      child.write(chunk)
+    }
+  }
+}
+
+const spawnOnboardingProcess = (
+  spec: DockerCommandSpec,
+  containerId: string,
+  handlers: InteractiveHandlers
+) =>
+  pipe(
+    Effect.try({
+      try: () =>
+        spawnPty(
+          spec.file,
+          [...spec.argsPrefix, ...onboardingExecArgs(containerId)],
+          {
+            cols: 120,
+            cwd: process.cwd(),
+            env: process.env,
+            name: "xterm-256color",
+            rows: 32
+          }
+        ),
+      catch: (error) => new DockerCliError({ message: String(error) })
+    }),
+    Effect.map((child): InteractiveDockerProcess => wireInteractiveChild(child, handlers))
+  )
+
+const withPreparedOnboarding = <A>(
+  containerId: string,
+  useSpec: (spec: DockerCommandSpec) => Effect.Effect<A, DockerCliError>
+) =>
+  pipe(
+    resolveDockerCommand,
+    Effect.flatMap((spec) =>
+      pipe(
+        runWithSpec(spec, prepareOnboardingArgs(containerId)),
+        Effect.flatMap(() => useSpec(spec))
+      )
+    )
+  )
+
+const writePanelIdentity = (spec: DockerCommandSpec, containerId: string, rawIntent: string) =>
+  rawIntent.trim().length === 0
+    ? Effect.void
+    : runWithSpec(spec, panelIdentityArgs(containerId, rawIntent)).pipe(Effect.asVoid)
+
+const sendPanelIdentityChat = (spec: DockerCommandSpec, containerId: string, rawIntent: string) =>
+  rawIntent.trim().length === 0
+    ? Effect.void
+    : runWithSpec(spec, panelIdentityChatArgs(containerId, rawIntent)).pipe(Effect.asVoid)
+
+const emitFinalizeStage = (handlers: FinalizeHandlers, stage: OnboardingFinalizeStage) =>
+  Effect.sync(() => {
+    handlers.onStage?.(stage)
+  })
+
+export const finalizeOnboardingProcess = (containerId: string, rawIntent = "", handlers: FinalizeHandlers = {}) =>
+  withPreparedOnboarding(
+    containerId,
+    (spec) =>
+      pipe(
+        emitFinalizeStage(handlers, "identity-files"),
+        Effect.flatMap(() => writePanelIdentity(spec, containerId, rawIntent)),
+        Effect.flatMap(() => emitFinalizeStage(handlers, "gateway-restart")),
+        Effect.flatMap(() => runWithSpec(spec, finalizeOnboardingArgs(containerId))),
+        Effect.flatMap(() => emitFinalizeStage(handlers, "role-chat")),
+        Effect.flatMap(() => sendPanelIdentityChat(spec, containerId, rawIntent)),
+        Effect.flatMap(() => emitFinalizeStage(handlers, "identity-ready")),
+        Effect.asVoid
+      )
+  )
+
+export const startOnboardingProcess = (
+  containerId: string,
+  handlers: InteractiveHandlers
+) =>
+  withPreparedOnboarding(
+    containerId,
+    (spec) => spawnOnboardingProcess(spec, containerId, handlers)
+  )

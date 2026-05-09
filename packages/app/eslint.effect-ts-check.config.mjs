@@ -216,5 +216,12 @@ export default tseslint.config(
     rules: {
       "no-restricted-syntax": ["error", ...restrictedSyntaxBaseNoServiceFactory]
     }
+  },
+  {
+    name: "effect-ts-compliance-shell-node-boundaries",
+    files: ["src/shell/**/*.ts"],
+    rules: {
+      "no-restricted-imports": "off"
+    }
   }
 )
