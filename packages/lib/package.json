@@ -1,64 +1,34 @@
 {
-  "name": "@effect-template/app",
-  "version": "1.0.16",
-  "description": "Minimal Vite-powered TypeScript console starter using Effect",
-  "main": "dist/main.js",
-  "directories": {
-    "doc": "doc"
+  "name": "@effect-template/lib",
+  "version": "1.0.15",
+  "description": "Reusable OpenClaw panel backend library",
+  "main": "dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
   },
   "scripts": {
-    "build": "vite build --ssr src/app/main.ts",
-    "dev": "vite build --watch --ssr src/app/main.ts",
+    "build": "vite build --ssr src/index.ts && tsc -p tsconfig.build.json",
+    "dev": "vite build --watch --ssr src/index.ts",
     "lint": "npx @ton-ai-core/vibecode-linter src/",
     "lint:tests": "npx @ton-ai-core/vibecode-linter tests/",
     "lint:effect": "npx eslint --config eslint.effect-ts-check.config.mjs .",
     "check": "tsc --noEmit",
-    "prestart": "vite build --ssr src/app/main.ts",
-    "start": "node dist/main.js",
     "test": "npx @ton-ai-core/vibecode-linter tests/ && vitest run",
     "typecheck": "tsc --noEmit"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/ProverCoderAI/effect-template.git"
-  },
-  "keywords": [
-    "effect",
-    "typescript",
-    "vite",
-    "console"
-  ],
-  "author": "",
-  "license": "ISC",
   "type": "module",
-  "bugs": {
-    "url": "https://github.com/ProverCoderAI/effect-template/issues"
-  },
-  "homepage": "https://github.com/ProverCoderAI/effect-template#readme",
   "packageManager": "pnpm@10.29.3",
   "dependencies": {
-    "@effect/cli": "^0.73.2",
-    "@effect/cluster": "^0.56.4",
-    "@effect/experimental": "^0.58.0",
-    "@effect/platform": "^0.94.5",
-    "@effect/platform-node": "^0.104.1",
-    "@effect/printer": "^0.47.0",
-    "@effect/printer-ansi": "^0.47.0",
-    "@effect/rpc": "^0.73.1",
-    "@effect/schema": "^0.75.5",
-    "@effect/sql": "^0.49.0",
-    "@effect/typeclass": "^0.38.0",
-    "@effect/workflow": "^0.16.0",
-    "@xterm/addon-fit": "^0.11.0",
-    "@xterm/xterm": "^6.0.0",
-    "@effect-template/lib": "workspace:*",
     "effect": "^3.19.17",
-    "ts-morph": "^27.0.2"
+    "node-pty": "^1.1.0"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.0",
     "@effect/eslint-plugin": "^0.3.2",
-    "@effect/language-service": "latest",
+    "@effect/language-service": "0.73.1",
     "@effect/vitest": "^0.27.0",
     "@eslint-community/eslint-plugin-eslint-comments": "^4.6.0",
     "@eslint/compat": "2.0.2",

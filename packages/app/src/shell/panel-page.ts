@@ -1,4 +1,5 @@
-import type { PanelConfig } from "../core/bot.js"
+import type { PanelConfig } from "@effect-template/lib"
+
 import { panelScript } from "./panel-script.js"
 import { panelStyles } from "./panel-styles.js"
 

@@ -6,6 +6,11 @@ import { type BotRecord, newBotRecord, type PanelConfig } from "../core/bot.js"
 import { type BotProvisioningSnapshot, generateBotProvisioningCommand } from "../core/provisioning.js"
 import { cliReadProvisioningSnapshot } from "./docker-provisioning-snapshot.js"
 
+export type BotCommandInput = {
+  readonly name: string
+  readonly rawIntent: string
+}
+
 const emptyProvisioningSnapshot: BotProvisioningSnapshot = {
   connector: null,
   gatewayToken: "",
@@ -16,12 +21,10 @@ const emptyProvisioningSnapshot: BotProvisioningSnapshot = {
 const randomGatewayToken = (): string =>
   `${randomUUID().replaceAll("-", "")}${randomUUID().replaceAll("-", "").slice(0, 16)}`
 
-const trimFormValue = (form: URLSearchParams, key: string): string => (form.get(key) ?? "").trim()
-
-const provisioningSnapshotFromForm = (form: URLSearchParams): BotProvisioningSnapshot => ({
+const provisioningSnapshotFromInput = (input: BotCommandInput): BotProvisioningSnapshot => ({
   connector: null,
   gatewayToken: randomGatewayToken(),
-  rawIntent: trimFormValue(form, "rawIntent"),
+  rawIntent: input.rawIntent.trim(),
   telegramBotToken: ""
 })
 
@@ -37,20 +40,20 @@ export const commandResponseFor = (config: PanelConfig, bot: BotRecord, snapshot
     ...snapshotWithGatewayToken(snapshot)
   })
 
-export const previewCommandForForm = (
+export const previewCommandForInput = (
   config: PanelConfig,
   occupiedPorts: ReadonlyArray<number>,
-  form: URLSearchParams
+  input: BotCommandInput
 ) => {
   const now = new Date().toISOString()
   const bot = newBotRecord({
     baseGatewayPort: config.baseGatewayPort,
     id: randomUUID().slice(0, 12),
-    name: trimFormValue(form, "name") || "openclaw-bot",
+    name: input.name.trim() || "openclaw-bot",
     now,
     occupiedPorts
   })
-  return commandResponseFor(config, bot, provisioningSnapshotFromForm(form))
+  return commandResponseFor(config, bot, provisioningSnapshotFromInput(input))
 }
 
 export const exportCommandForBot = (config: PanelConfig, bot: BotRecord) =>
