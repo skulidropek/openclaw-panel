@@ -1,7 +1,6 @@
+import type { GreetingVariant } from "@effect-template/lib"
 import * as S from "@effect/schema/Schema"
 import { Effect, pipe } from "effect"
-
-import type { GreetingVariant } from "../core/greeting.js"
 
 const cliSchema = S.Struct({
   name: S.optionalWith(S.NonEmptyString, { default: () => "Effect" })

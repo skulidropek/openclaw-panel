@@ -8,18 +8,18 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "pnpm --filter @effect-template/app build",
-    "check": "pnpm --filter @effect-template/app check",
+    "build": "corepack pnpm --filter @effect-template/lib build && corepack pnpm --filter @effect-template/app build",
+    "check": "corepack pnpm --filter @effect-template/lib check && corepack pnpm --filter @effect-template/lib build && corepack pnpm --filter @effect-template/app check",
     "changeset": "changeset",
     "changeset-publish": "node -e \"if (!process.env.NPM_TOKEN) { console.log('Skipping publish: NPM_TOKEN is not set'); process.exit(0); }\" && changeset publish",
     "changeset-version": "changeset version",
-    "dev": "pnpm --filter @effect-template/app dev",
-    "lint": "pnpm --filter @effect-template/app lint",
-    "lint:tests": "pnpm --filter @effect-template/app lint:tests",
-    "lint:effect": "pnpm --filter @effect-template/app lint:effect",
-    "test": "pnpm --filter @effect-template/app test",
-    "typecheck": "pnpm --filter @effect-template/app typecheck",
-    "start": "pnpm --filter @effect-template/app start"
+    "dev": "corepack pnpm --filter @effect-template/lib build && corepack pnpm --filter @effect-template/app dev",
+    "lint": "corepack pnpm --filter @effect-template/lib lint && corepack pnpm --filter @effect-template/lib build && corepack pnpm --filter @effect-template/app lint",
+    "lint:tests": "corepack pnpm --filter @effect-template/lib lint:tests && corepack pnpm --filter @effect-template/lib build && corepack pnpm --filter @effect-template/app lint:tests",
+    "lint:effect": "corepack pnpm --filter @effect-template/lib lint:effect && corepack pnpm --filter @effect-template/lib build && corepack pnpm --filter @effect-template/app lint:effect",
+    "test": "corepack pnpm --filter @effect-template/lib test && corepack pnpm --filter @effect-template/lib build && corepack pnpm --filter @effect-template/app test",
+    "typecheck": "corepack pnpm --filter @effect-template/lib typecheck && corepack pnpm --filter @effect-template/lib build && corepack pnpm --filter @effect-template/app typecheck",
+    "start": "corepack pnpm --filter @effect-template/lib build && corepack pnpm --filter @effect-template/app start"
   },
   "devDependencies": {
     "@changesets/changelog-github": "^0.5.2",
