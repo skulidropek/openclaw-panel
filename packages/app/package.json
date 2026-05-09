@@ -12,10 +12,10 @@
     "lint": "npx @ton-ai-core/vibecode-linter src/",
     "lint:tests": "npx @ton-ai-core/vibecode-linter tests/",
     "lint:effect": "npx eslint --config eslint.effect-ts-check.config.mjs .",
-    "check": "corepack pnpm run typecheck",
-    "prestart": "corepack pnpm run build",
+    "check": "tsc --noEmit",
+    "prestart": "vite build --ssr src/app/main.ts",
     "start": "node dist/main.js",
-    "test": "corepack pnpm run lint:tests && vitest run",
+    "test": "npx @ton-ai-core/vibecode-linter tests/ && vitest run",
     "typecheck": "tsc --noEmit"
   },
   "repository": {
