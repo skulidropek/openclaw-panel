@@ -36,12 +36,12 @@
   "license": "ISC",
   "pnpm": {
     "ignoredBuiltDependencies": [
-      "esbuild",
-      "node-pty"
+      "esbuild"
     ],
     "onlyBuiltDependencies": [
       "@parcel/watcher",
       "msgpackr-extract",
+      "node-pty",
       "unrs-resolver"
     ],
     "patchedDependencies": {
