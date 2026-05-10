@@ -46,6 +46,56 @@ export const panelModalStyles = String.raw`
     color: #9a4b19;
     font-weight: 800;
   }
+  .secret-warning.muted {
+    border-color: #cfe0f3;
+    background: #eef6ff;
+    color: #31577f;
+  }
+  .bundle-mode-group {
+    display: grid;
+    gap: 10px;
+    margin: 0 0 12px;
+    border: 1px solid #d8e2ee;
+    border-radius: 18px;
+    padding: 12px;
+    background: #fff;
+  }
+  .bundle-mode-group legend {
+    padding: 0 6px;
+    color: #526b8d;
+    font-size: 13px;
+    font-weight: 850;
+  }
+  .bundle-mode-option {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
+    border: 1px solid #d8e2ee;
+    border-radius: 14px;
+    padding: 12px;
+    background: #f8fbff;
+    color: #10233d;
+  }
+  .bundle-mode-option input {
+    width: 18px;
+    height: 18px;
+    padding: 0;
+  }
+  .bundle-mode-option span {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+  }
+  .bundle-mode-option small {
+    color: #5d7598;
+    font-size: 12px;
+    font-weight: 750;
+    overflow-wrap: anywhere;
+  }
+  .bundle-mode-option.danger-option {
+    border-color: #f1c8aa;
+    background: #fff7ed;
+  }
   .command-output {
     min-height: 300px;
     margin-bottom: 12px;

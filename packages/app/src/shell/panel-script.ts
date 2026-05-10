@@ -1,3 +1,4 @@
+import { panelBundleModalScript } from "./panel-bundle-modal-script.js"
 import { panelCommandModalScript } from "./panel-command-modal-script.js"
 import { panelOnboardingScript } from "./panel-onboarding-script.js"
 
@@ -73,6 +74,7 @@ const api = async (path, body) => (await fetch(path, {
 })).json();
 
 ${panelCommandModalScript}
+${panelBundleModalScript}
 
 const pageName = () => location.pathname === "/bots" ? "bots" : "create";
 const setRoute = (path) => {
@@ -156,6 +158,7 @@ const renderBotDetail = (bot) => {
     "</div><div class='actions'>" +
     "<a class='primary-link' target='_blank' rel='noreferrer' href='" + escapeHtml(botUrl(bot)) + "'>Open OpenClaw</a>" +
     "<button class='secondary' data-command-id='" + escapeHtml(bot.id) + "'>CLI command</button>" +
+    "<button class='secondary' data-copy-bot-id='" + escapeHtml(bot.id) + "'>Copy bot</button>" +
     "<button class='secondary' data-action='onboard' data-id='" + escapeHtml(bot.id) + "'>Onboard</button>" +
     "<button class='secondary' data-action='status' data-id='" + escapeHtml(bot.id) + "'>Status</button>" +
     "<button class='secondary' data-action='restart' data-id='" + escapeHtml(bot.id) + "'>Restart</button>" +
@@ -256,6 +259,11 @@ botDetailEl.addEventListener("click", (event) => {
   const commandId = target.dataset.commandId;
   if (commandId) {
     api("/api/bots/" + encodeURIComponent(commandId) + "/export-command").then(showCommandModal);
+    return;
+  }
+  const copyBotId = target.dataset.copyBotId;
+  if (copyBotId) {
+    showBundleModal(copyBotId);
     return;
   }
   const id = target.dataset.id;

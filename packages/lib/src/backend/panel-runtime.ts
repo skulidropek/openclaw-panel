@@ -1,7 +1,9 @@
 import { Effect, pipe } from "effect"
 
 import { type BotAction, type BotRecord, newBotRecord, type PanelConfig, withContainerId } from "../core/bot.js"
+import type { BotBundleMode } from "../core/bundle.js"
 import { botAdminUrl } from "../shell/bot-admin-proxy.js"
+import { createBotBundleExport } from "../shell/bot-bundle.js"
 import {
   cliCreateContainer,
   cliCreateVolume,
@@ -150,6 +152,17 @@ export const exportBotCommand = (runtime: PanelRuntime, botId: string) =>
   pipe(
     findBot(botId),
     Effect.flatMap((bot) => exportCommandForBot(runtime.config, bot))
+  )
+
+export const exportBotBundle = (
+  runtime: PanelRuntime,
+  botId: string,
+  mode: BotBundleMode,
+  origin: string
+) =>
+  pipe(
+    findBot(botId),
+    Effect.flatMap((bot) => createBotBundleExport(runtime.config, bot, mode, origin))
   )
 
 export const runBotAction = (runtime: PanelRuntime, botId: string, action: BotAction) =>

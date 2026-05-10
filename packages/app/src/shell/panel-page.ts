@@ -105,10 +105,7 @@ const botsPage = String.raw`
     </section>
   </section>`
 
-const pageSections = (config: PanelConfig): string =>
-  String.raw`${appHeader(config)}
-${createPage}
-${botsPage}
+const commandModal = String.raw`
   <div id="command-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="command-modal-title">
     <div class="modal-panel">
       <div class="modal-head">
@@ -132,5 +129,48 @@ ${botsPage}
     </div>
   </div>
 `
+
+const bundleModal = String.raw`
+  <div id="bundle-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="bundle-modal-title">
+    <div class="modal-panel">
+      <div class="modal-head">
+        <div>
+          <p class="eyebrow">Portable bot image</p>
+          <h2 id="bundle-modal-title">Copy bot</h2>
+        </div>
+        <button id="bundle-modal-close" class="icon-button" type="button" aria-label="Close">×</button>
+      </div>
+      <p id="bundle-warning" class="secret-warning muted">Share bundle excludes OpenClaw config, chat history, cache, and common secret files.</p>
+      <fieldset class="bundle-mode-group">
+        <legend>Export mode</legend>
+        <label class="bundle-mode-option">
+          <input id="bundle-mode-share" type="radio" name="bundle-mode" value="share" checked />
+          <span><strong>Share</strong><small>Role and workspace state without OpenClaw secrets.</small></span>
+        </label>
+        <label class="bundle-mode-option danger-option">
+          <input id="bundle-mode-private" type="radio" name="bundle-mode" value="private" />
+          <span><strong>Private backup</strong><small>Full .openclaw state with tokens and history.</small></span>
+        </label>
+      </fieldset>
+      <label>One-line install command
+        <textarea id="bundle-output" class="command-output compact" rows="5" readonly></textarea>
+      </label>
+      <p id="bundle-status" class="form-note">Bundle exports expire after 24 hours.</p>
+      <div class="modal-actions">
+        <button id="bundle-create-button" type="button">Create bundle</button>
+        <button id="bundle-copy-confirm" class="secondary" type="button">Copy command</button>
+        <button id="bundle-modal-cancel" class="secondary" type="button">Close</button>
+      </div>
+    </div>
+  </div>
+`
+
+const pageModals = `${commandModal}${bundleModal}`
+
+const pageSections = (config: PanelConfig): string =>
+  String.raw`${appHeader(config)}
+${createPage}
+${botsPage}
+${pageModals}`
 
 export const panelPage = (config: PanelConfig): string => `${pageHead}${pageSections(config)}${panelScript}`
