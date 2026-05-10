@@ -34,6 +34,20 @@ export const sendText = (
     response.end(body)
   })
 
+export const sendBuffer = (
+  response: ServerResponse,
+  statusCode: number,
+  contentType: string,
+  body: Buffer
+): Effect.Effect<void> =>
+  Effect.sync(() => {
+    response.writeHead(statusCode, {
+      "content-length": body.length,
+      "content-type": contentType
+    })
+    response.end(body)
+  })
+
 export const sendJson = (response: ServerResponse, statusCode: number, body: object): Effect.Effect<void> =>
   sendText(response, statusCode, "application/json; charset=utf-8", `${JSON.stringify(body)}\n`)
 
